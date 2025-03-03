@@ -8,4 +8,6 @@ class VisionAnalysis(Base):
     image_url = Column(String, nullable=False)
     diagnosis = Column(String, nullable=False)
     recommendation = Column(String, nullable=False)
-    timestamp = Column(TIMESTAMP, server_default=func.now())  
+    timestamp = Column(TIMESTAMP, server_default=func.now())
+
+

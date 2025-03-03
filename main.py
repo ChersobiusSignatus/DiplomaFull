@@ -3,7 +3,6 @@ from routes.analyze import router as analyze_router
 
 app = FastAPI()
 
-# Include routes
 app.include_router(analyze_router)
 
 @app.get("/")

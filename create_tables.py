@@ -1,10 +1,7 @@
-from models.database import Base, engine
-from models.vision_analysis import VisionAnalysis
-import logging
+# create_tables.py
+from models.database import engine, Base
+from models import plant, photo, sensor_data, recommendation
 
-try:
-    print("⏳ Создаем таблицы в базе данных...")
-    Base.metadata.create_all(bind=engine)
-    print("✅ Таблицы успешно созданы!")
-except Exception as e:
-    logging.error(f"Ошибка создания таблиц: {str(e)}")
+print("🔨 Creating tables...")
+Base.metadata.create_all(bind=engine)
+print("✅ Tables created.")

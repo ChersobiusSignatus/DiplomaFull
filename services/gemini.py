@@ -1,77 +1,56 @@
-import google.generativeai as genai
-import base64
-import json
-import logging
-from utils.config import GEMINI_API_KEY
+### services/gemini.py
+import os
+import requests
+from dotenv import load_dotenv
 
-# Настроим логирование
-logging.basicConfig(level=logging.DEBUG)
+load_dotenv()
 
-# Настройка API-ключа
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_URL = os.getenv("GEMINI_API_URL") or "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
-# Используем правильное название модели с "models/"
-MODEL_NAME = "models/gemini-2.0-flash"
+headers = {
+    "Content-Type": "application/json"
+}
 
-def check_available_models():
-    """Функция для проверки доступных моделей."""
-    try:
-        available_models = genai.list_models()
-        model_names = [model.name for model in available_models]
-        logging.debug(f"📌 Доступные модели: {model_names}")
-        if MODEL_NAME not in model_names:
-            logging.error(f"❌ Модель {MODEL_NAME} не найдена! Используй одну из доступных: {model_names}")
-            return False
-        return True
-    except Exception as e:
-        logging.error(f"❌ Ошибка при получении списка моделей: {str(e)}")
-        return False
-
-def analyze_image_with_gemini(image_data, mime_type):
-    """Отправляет изображение в Gemini AI и получает результат анализа."""
-    
-    # Проверяем, доступна ли модель
-    if not check_available_models():
-        return {"status": "error", "message": f"Модель {MODEL_NAME} не найдена. Проверь список доступных моделей."}
-
-    image_base64 = base64.b64encode(image_data).decode("utf-8")
-
-    model = genai.GenerativeModel(MODEL_NAME)
-
-    payload = {
-        "parts": [
-            {
-                "text": "Определи состояние растения по изображению. "
-                        "Ответ должен быть в JSON формате: "
-                        '{"diagnosis": "здоровое растение" или "название болезни", '
-                        '"recommendation": "рекомендация по уходу"}'
-            },
-            {
-                "inline_data": {
-                    "mime_type": mime_type,
-                    "data": image_base64
-                }
-            }
-        ]
+def call_gemini_api(prompt: str) -> str:
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}]
     }
+    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", headers=headers, json=body)
+    response.raise_for_status()
+    result = response.json()
+    return result['candidates'][0]['content']['parts'][0]['text']
 
-    try:
-        response = model.generate_content(payload)
+def get_photo_prompt(plant_name: str) -> str:
+    return f"""
+You are a plant health expert. Analyze this plant's condition based on the uploaded photo of a {plant_name}.
+The image may show signs of disease, dehydration, or other issues. Provide a diagnosis and actionable care advice.
+"""
 
-        # Логируем, что вернул Gemini
-        logging.debug(f"🔍 Ответ от Gemini (сырые данные): {response.text}")
+def get_combined_prompt(plant_name: str, sensors, weather: dict = None) -> str:
+    weather_part = ""
+    if weather:
+        weather_part = f"""
+Weather Data:
+- Location: {weather['city']}, {weather['country']}
+- Temperature: {weather['temp_c']}°C
+- Humidity: {weather['humidity']}%
+- Heat Index: {weather['heat_index_c']}°C
+- UV Index: {weather['uv_index']}
+"""
 
-        if response and response.text:
-            # Пробуем разобрать JSON
-            try:
-                parsed_response = json.loads(response.text)
-                return parsed_response
-            except json.JSONDecodeError:
-                logging.error("❌ Ошибка декодирования JSON от Gemini")
-                return {"status": "error", "message": "Ошибка анализа изображения. Некорректный JSON."}
-        else:
-            return {"status": "error", "message": "Ошибка анализа изображения. Пустой ответ от Gemini."}
-    
-    except Exception as e:
-        logging.error(f"❌ Ошибка отправки запроса в Gemini: {str(e)}")
-        return {"status": "error", "message": f"Ошибка запроса в Gemini: {str(e)}"}
+    return f"""
+You're a plant care specialist. Based on the following information, provide care recommendations for a {plant_name}:
+
+Photo: An image of the plant is available.
+Sensor Readings:
+- Temperature: {sensors.temperature}°C
+- Humidity: {sensors.humidity}%
+- Light: {sensors.light} lux
+- Moisture: {sensors.soil_moisture}
+- Pressure: {sensors.pressure} hPa
+- Air Quality: {sensors.gas_quality}
+{weather_part}
+
+Consider ideal growing conditions for this plant and suggest what should be done to maintain or improve its health.
+"""

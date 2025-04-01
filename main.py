@@ -1,10 +1,15 @@
+# main.py
 from fastapi import FastAPI
-from routes.analyze import router as analyze_router
+from routes import plant_routes, photo_routes, diagnosis_routes, sensor_routes
 
-app = FastAPI()
+app = FastAPI(title="🌿 Plant Health API")
 
-app.include_router(analyze_router)
+# Include routers
+app.include_router(plant_routes.router, prefix="/plants", tags=["Plants"])
+app.include_router(photo_routes.router, prefix="/plants", tags=["Photos"])
+app.include_router(diagnosis_routes.router, prefix="/diagnose", tags=["Diagnosis"])
+app.include_router(sensor_routes.router, prefix="/plants", tags=["Sensor Data"])
 
 @app.get("/")
-def home():
-    return {"message": "Plant Health API is running with Gemini 2.0 Flash!"}
+def read_root():
+    return {"message": "Welcome to the Plant Health API 🌱"}

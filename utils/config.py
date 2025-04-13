@@ -14,3 +14,5 @@ S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
 if not all([GEMINI_API_KEY, DATABASE_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME]):
     raise ValueError("❌ Some environment variables are missing! Check your .env file.")
+
+

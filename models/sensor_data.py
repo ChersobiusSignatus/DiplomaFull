@@ -1,6 +1,8 @@
+#models/sensor_data.py
+import datetime
 from sqlalchemy import Column, Float, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
+
 import uuid
 from .database import Base
 
@@ -16,3 +18,4 @@ class SensorData(Base):
     pressure = Column(Float)
     gas_quality = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
+

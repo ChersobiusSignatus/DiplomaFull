@@ -1,6 +1,9 @@
+#models/photo.py
+
+import datetime
 from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
+
 import uuid
 from .database import Base
 
@@ -12,3 +15,5 @@ class Photo(Base):
     s3_url = Column(String, nullable=False)
     is_current = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+

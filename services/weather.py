@@ -26,3 +26,5 @@ def get_weather_data(lat: float, lon: float) -> dict:
         "heat_index_c": data["current"]["feelslike_c"],
         "uv_index": data["current"]["uv"]
     }
+
+

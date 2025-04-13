@@ -14,3 +14,5 @@ def upload_to_s3(file):
     filename = f"plant_photos/{uuid.uuid4()}.{file_extension}"
     s3.upload_fileobj(file.file, BUCKET_NAME, filename, ExtraArgs={"ACL": "public-read"})
     return f"https://{BUCKET_NAME}.s3.amazonaws.com/{filename}"
+
+

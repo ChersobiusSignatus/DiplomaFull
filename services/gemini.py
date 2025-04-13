@@ -48,9 +48,10 @@ Sensor Readings:
 - Humidity: {sensors.humidity}%
 - Light: {sensors.light} lux
 - Moisture: {sensors.soil_moisture}
-- Pressure: {sensors.pressure} hPa
 - Air Quality: {sensors.gas_quality}
 {weather_part}
 
 Consider ideal growing conditions for this plant and suggest what should be done to maintain or improve its health.
 """
+
+

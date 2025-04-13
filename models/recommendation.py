@@ -1,6 +1,8 @@
+#models/recommendation.py
+import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
+
 import uuid
 from .database import Base
 
@@ -12,3 +14,5 @@ class Recommendation(Base):
     type = Column(String, nullable=False)  # 'photo' or 'combined'
     content = Column(String, nullable=False)  # Gemini's response
     created_at = Column(DateTime, default=datetime.utcnow)
+
+

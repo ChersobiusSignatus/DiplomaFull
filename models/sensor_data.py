@@ -1,5 +1,5 @@
 #models/sensor_data.py
-import datetime
+from datetime import datetime
 from sqlalchemy import Column, Float, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from typing import List, Optional

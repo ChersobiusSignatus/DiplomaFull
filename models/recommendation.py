@@ -1,5 +1,5 @@
 #models/recommendation.py
-import datetime
+from datetime import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from typing import List, Optional
 from sqlalchemy.dialects.postgresql import UUID

@@ -1,6 +1,6 @@
 #models/photo.py
 
-import datetime
+from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from typing import List, Optional

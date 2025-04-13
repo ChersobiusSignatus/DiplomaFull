@@ -1,6 +1,6 @@
 ### models/plant.py
 
-import datetime
+from datetime import datetime
 from sqlalchemy import Column, String, DateTime
 from typing import List, Optional
 from sqlalchemy.dialects.postgresql import UUID

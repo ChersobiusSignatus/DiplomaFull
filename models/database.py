@@ -5,6 +5,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+from typing import List, Optional
+from uuid import UUID
+
 
 load_dotenv()
 

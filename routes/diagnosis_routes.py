@@ -38,7 +38,9 @@ def get_db():
     response_model=RecommendationOut,
     tags=["Diagnosis"]
 )
-def diagnose_photo(plant_id: UUID, db: Session = Depends(get_db)):
+def diagnose_photo(
+    plant_id: UUID = Path(description="Plant UUID"),
+    db: Session = Depends(get_db)):
     plant = get_plant_or_404(plant_id, db)
     plant = db.query(Plant).filter(Plant.id == plant_id).first()
     if not plant:

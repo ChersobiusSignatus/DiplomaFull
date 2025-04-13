@@ -10,6 +10,9 @@ import uuid
 from response_models import SensorDataOut
 from schemas import SensorDataIn
 from utils.validators import get_plant_or_404
+from typing import List, Optional
+from uuid import UUID
+
 
 
 
@@ -34,7 +37,6 @@ def upload_sensor_data(
     db: Session = Depends(get_db)
 ):
     plant = get_plant_or_404(plant_id, db)
-    plant = db.query(Plant).filter(Plant.id == plant_id).first()
     if not plant:
         raise HTTPException(status_code=404, detail="Plant not found")
 

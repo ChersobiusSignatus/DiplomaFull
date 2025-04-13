@@ -1,6 +1,9 @@
 # main.py
 from fastapi import FastAPI
 from routes import plant_routes, photo_routes, sensor_routes, diagnosis_routes
+from typing import List, Optional
+from uuid import UUID
+
 
 app = FastAPI(title="🌿 SunGreen API")
 

@@ -9,6 +9,8 @@ from services.storage import upload_to_s3
 from uuid import UUID
 import uuid
 from response_models import PhotoOut
+from typing import List, Optional
+
 
 router = APIRouter()
 

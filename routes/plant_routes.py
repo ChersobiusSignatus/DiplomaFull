@@ -8,6 +8,9 @@ from typing import List
 from response_models import PlantOut
 from schemas import PlantCreate 
 from response_models import PlantOut
+from typing import List, Optional
+from uuid import UUID
+
 
 router = APIRouter()
 
@@ -22,7 +25,7 @@ def get_db():
 def get_plants(db: Session = Depends(get_db)):
     return db.query(Plant).all()
 
-router.post(
+@router.post(
     "/",
     summary="Add a new plant with type",
     response_model=PlantOut,

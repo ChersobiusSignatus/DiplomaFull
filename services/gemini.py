@@ -2,6 +2,9 @@
 import os
 import requests
 from dotenv import load_dotenv
+from typing import List, Optional
+from uuid import UUID
+
 
 load_dotenv()
 

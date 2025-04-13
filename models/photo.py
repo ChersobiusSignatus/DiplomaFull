@@ -4,7 +4,6 @@ import datetime
 from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from typing import List, Optional
-from uuid import UUID
 import uuid
 from .database import Base
 

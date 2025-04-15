@@ -1,21 +1,27 @@
 #models/response_models.py
 
+# models/response_models.py
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
-from typing import List, Optional
-from uuid import UUID
 
+
+# ✅ Используется для GET /plants/... (включает поля полива)
 class PlantOut(BaseModel):
     id: UUID
     name: str
     type: str
     created_at: datetime
+    last_watered: Optional[datetime]
+    next_watering: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+
+# ✅ Используется после загрузки фото
 class PhotoOut(BaseModel):
     id: UUID
     plant_id: UUID
@@ -24,8 +30,10 @@ class PhotoOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+
+# ✅ Используется после загрузки сенсоров
 class SensorDataOut(BaseModel):
     id: UUID
     plant_id: UUID
@@ -38,15 +46,16 @@ class SensorDataOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+
+# ✅ Используется для ответа от Gemini
 class RecommendationOut(BaseModel):
     id: UUID
     plant_id: UUID
-    type: str
-    content: str
+    type: str                   # "photo" / "combined"
+    content: str                # Текстовая рекомендация
     created_at: datetime
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True

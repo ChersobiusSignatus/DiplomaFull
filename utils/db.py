@@ -1,4 +1,12 @@
-#utils/db.py
+# utils/db.py
 
-from utils.db import get_db
+from sqlalchemy.orm import Session
+from models.database import SessionLocal
 
+# ✅ Получение сессии БД через контекстный генератор
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

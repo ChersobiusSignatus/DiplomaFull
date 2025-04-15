@@ -8,7 +8,7 @@ from models.plant import Plant
 from services.storage import upload_to_s3
 from uuid import UUID
 import uuid
-from response_models import PhotoOut
+from models.response_models import PhotoOut
 from typing import List, Optional
 
 
@@ -21,21 +21,40 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/{plant_id}/photos", summary="Upload a photo and mark it as current", response_model=PhotoOut)
-def upload_photo(plant_id: UUID, file: UploadFile = File(...), db: Session = Depends(get_db)):
+@router.post(
+    "/{plant_id}/photos",
+    summary="Upload a plant photo and mark it as current",
+    response_model=PhotoOut,
+    tags=["Photos"]
+)
+def upload_photo(
+    plant_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    # 🔍 Проверка: существует ли растение
     plant = db.query(Plant).filter(Plant.id == plant_id).first()
     if not plant:
         raise HTTPException(status_code=404, detail="Plant not found")
 
+    # ☁️ Загрузка фото на S3
     s3_url = upload_to_s3(file)
 
-    db.query(Photo).filter(Photo.plant_id == plant_id, Photo.is_current == True).update({"is_current": False})
+    # 🧼 Убираем старое текущее фото (если есть)
+    db.query(Photo).filter(
+        Photo.plant_id == plant_id,
+        Photo.is_current == True
+    ).update({"is_current": False})
 
-    photo = Photo(id=uuid.uuid4(), plant_id=plant_id, s3_url=s3_url, is_current=True)
+    # 📸 Сохраняем новое фото как текущее
+    photo = Photo(
+        id=uuid.uuid4(),
+        plant_id=plant_id,
+        s3_url=s3_url,
+        is_current=True
+    )
     db.add(photo)
     db.commit()
     db.refresh(photo)
+
     return photo
-
-
-

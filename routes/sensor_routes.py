@@ -1,19 +1,16 @@
-### routes/sensor_routes.py
+# routes/sensor_routes.py
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from models.database import SessionLocal
-from models.plant import Plant
-from models.sensor_data import SensorData
 from uuid import UUID
 import uuid
-from response_models import SensorDataOut
-from schemas import SensorDataIn
+
+from models.database import SessionLocal
+from models.sensor_data import SensorData
+from models.plant import Plant
+from models.response_models import SensorDataOut
+from models.input_models import SensorDataIn
 from utils.validators import get_plant_or_404
-from typing import List, Optional
-from uuid import UUID
-
-
 
 
 router = APIRouter()
@@ -24,6 +21,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 @router.post(
     "/{plant_id}/sensor-data",
@@ -37,8 +35,6 @@ def upload_sensor_data(
     db: Session = Depends(get_db)
 ):
     plant = get_plant_or_404(plant_id, db)
-    if not plant:
-        raise HTTPException(status_code=404, detail="Plant not found")
 
     data = SensorData(
         id=uuid.uuid4(),
@@ -47,9 +43,9 @@ def upload_sensor_data(
         humidity=payload.humidity,
         soil_moisture=payload.soil_moisture,
         light=payload.light,
-        pressure=payload.pressure,
         gas_quality=payload.gas_quality
     )
+
     db.add(data)
     db.commit()
     db.refresh(data)

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from routes import plant_routes, photo_routes, sensor_routes, diagnosis_routes, history_routes 
+from routes import plant_routes, photo_routes, sensor_routes, diagnosis_routes
 from routes.plant_details import router as details_router
+from routes.history_routes import router as history_router  
 
 
 app = FastAPI(
@@ -28,7 +29,7 @@ app.include_router(photo_routes.router, prefix="/plants", tags=["Photos"])
 app.include_router(sensor_routes.router, prefix="/plants", tags=["Sensors"])
 app.include_router(diagnosis_routes.router, prefix="/diagnose", tags=["Diagnosis"])
 app.include_router(details_router, prefix="/plants", tags=["Plant Details"])
-app.include_router(history_routes, prefix="/plants", tags=["History"])
+app.include_router(history_router, prefix="/plants", tags=["History"])
 
 # ✅ Root
 @app.get("/", tags=["System"])

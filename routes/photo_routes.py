@@ -21,6 +21,8 @@ def get_db():
     finally:
         db.close()
 
+
+
 @router.post(
     "/{plant_id}/photos",
     summary="Upload a plant photo and mark it as current",
@@ -58,3 +60,10 @@ def upload_photo(
     db.refresh(photo)
 
     return photo
+
+
+@router.get("/{plant_id}/photos")
+def get_plant_photos(plant_id: UUID, db: Session = Depends(get_db)):
+    photos = db.query(Photo).filter(Photo.plant_id == plant_id).all()
+    return photos
+

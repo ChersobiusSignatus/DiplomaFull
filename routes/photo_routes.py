@@ -67,3 +67,17 @@ def get_plant_photos(plant_id: UUID, db: Session = Depends(get_db)):
     photos = db.query(Photo).filter(Photo.plant_id == plant_id).all()
     return photos
 
+
+@router.get("/photos/latest", summary="Get current photos for all plants", tags=["Photos"])
+def get_latest_photos(db: Session = Depends(get_db)):
+    # Получить все текущие фото (is_current=True)
+    current_photos = db.query(Photo).filter(Photo.is_current == True).all()
+    return [
+        {
+            "plant_id": str(photo.plant_id),
+            "photo_url": photo.s3_url,
+            "created_at": photo.created_at.isoformat()
+        }
+        for photo in current_photos
+    ]
+

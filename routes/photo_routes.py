@@ -62,35 +62,16 @@ def upload_photo(
     return photo
 
 
-@router.get("/{plant_id}/photos")
-def get_plant_photos(plant_id: UUID, db: Session = Depends(get_db)):
-    photos = db.query(Photo).filter(Photo.plant_id == plant_id).all()
-    return photos
-
-
-@router.get("/photos/latest", summary="Get current photos for all plants", tags=["Photos"])
-def get_latest_photos(db: Session = Depends(get_db)):
-    # Получить только по одному текущему фото для каждого растения
-    subquery = (
-        db.query(Photo.plant_id, Photo.created_at)
-        .filter(Photo.is_current == True)
-        .distinct(Photo.plant_id)
-        .subquery()
-    )
-
-    # Присоединить обратно к таблице Photo, чтобы получить остальные поля
-    current_photos = (
+@router.get("/{plant_id}/photos", response_model=Optional[PhotoOut], summary="Get current photo for a specific plant", tags=["Photos"])
+def get_plant_current_photo(plant_id: UUID, db: Session = Depends(get_db)):
+    photo = (
         db.query(Photo)
-        .join(subquery, (Photo.plant_id == subquery.c.plant_id) & (Photo.created_at == subquery.c.created_at))
-        .all()
+        .filter(Photo.plant_id == plant_id, Photo.is_current == True)
+        .order_by(Photo.created_at.desc())
+        .first()
     )
 
-    return [
-        {
-            "plant_id": str(photo.plant_id),
-            "photo_url": photo.s3_url,
-            "created_at": photo.created_at.isoformat()
-        }
-        for photo in current_photos
-    ]
+    if not photo:
+        return None
 
+    return photo

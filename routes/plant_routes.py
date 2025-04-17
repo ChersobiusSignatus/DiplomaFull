@@ -33,9 +33,30 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/", summary="List all plants", response_model=List[PlantOut])
+@router.get("/", summary="List all plants with current photo", tags=["Plants"])
 def get_plants(db: Session = Depends(get_db)):
-    return db.query(Plant).all()
+    plants = db.query(Plant).all()
+
+    result = []
+    for plant in plants:
+        current_photo = (
+            db.query(Photo)
+            .filter(Photo.plant_id == plant.id, Photo.is_current == True)
+            .order_by(Photo.created_at.desc())
+            .first()
+        )
+        result.append({
+            "id": str(plant.id),
+            "name": plant.name,
+            "type": plant.type,
+            "created_at": plant.created_at.isoformat(),
+            "last_watered": plant.last_watered.isoformat() if plant.last_watered else None,
+            "next_watering": plant.next_watering.isoformat() if plant.next_watering else None,
+            "photo_url": current_photo.s3_url if current_photo else None
+        })
+
+    return result
+
 
 @router.post("/", summary="Add a new plant", response_model=PlantOut, tags=["Plants"])
 def add_plant(payload: PlantCreate, db: Session = Depends(get_db)):

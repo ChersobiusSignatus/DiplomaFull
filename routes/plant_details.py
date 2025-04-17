@@ -7,10 +7,9 @@ from models.plant import Plant
 from models.photo import Photo
 from models.sensor_data import SensorData
 from models.recommendation import Recommendation
-import requests
-import base64
 
 router = APIRouter()
+
 
 @router.get("/{plant_id}/details")
 def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
@@ -24,16 +23,6 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
         .order_by(Photo.created_at.desc())
         .first()
     )
-
-    # 🔄 Конвертация фото по ссылке в base64
-    photo_base64 = None
-    if photo:
-        try:
-            response = requests.get(photo.s3_url)
-            if response.status_code == 200:
-                photo_base64 = base64.b64encode(response.content).decode('utf-8')
-        except Exception:
-            photo_base64 = None
 
     sensor = (
         db.query(SensorData)
@@ -55,7 +44,7 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
         "type": plant.type,
         "last_watered": plant.last_watered,
         "next_watering": plant.next_watering,
-        "last_photo_base64": photo_base64,
+        "last_photo": photo.s3_url if photo else None,
         "last_sensor_data": {
             "temperature": sensor.temperature,
             "humidity": sensor.humidity,

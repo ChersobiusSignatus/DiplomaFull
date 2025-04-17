@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from routes import plant_routes, photo_routes, sensor_routes, diagnosis_routes
 from routes.plant_details import router as details_router
 from routes.history_routes import router as history_router  
-from routes.photo_routes import router as latest_photo_router
 
 
 app = FastAPI(

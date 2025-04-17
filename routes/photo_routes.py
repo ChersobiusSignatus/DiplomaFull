@@ -70,8 +70,21 @@ def get_plant_photos(plant_id: UUID, db: Session = Depends(get_db)):
 
 @router.get("/photos/latest", summary="Get current photos for all plants", tags=["Photos"])
 def get_latest_photos(db: Session = Depends(get_db)):
-    # Получить все текущие фото (is_current=True)
-    current_photos = db.query(Photo).filter(Photo.is_current == True).all()
+    # Получить только по одному текущему фото для каждого растения
+    subquery = (
+        db.query(Photo.plant_id, Photo.created_at)
+        .filter(Photo.is_current == True)
+        .distinct(Photo.plant_id)
+        .subquery()
+    )
+
+    # Присоединить обратно к таблице Photo, чтобы получить остальные поля
+    current_photos = (
+        db.query(Photo)
+        .join(subquery, (Photo.plant_id == subquery.c.plant_id) & (Photo.created_at == subquery.c.created_at))
+        .all()
+    )
+
     return [
         {
             "plant_id": str(photo.plant_id),

@@ -33,9 +33,6 @@ app.include_router(sensor_routes.router, prefix="/plants", tags=["Sensors"])
 app.include_router(diagnosis_routes.router, prefix="/diagnose", tags=["Diagnosis"])
 app.include_router(details_router, prefix="/plants", tags=["Plant Details"])
 app.include_router(history_router, prefix="/plants", tags=["History"])
-app.include_router(latest_photo_router, prefix="/photos", tags=["Photos"])
-
-
 
 # ✅ Root
 @app.get("/", tags=["System"])

@@ -1,6 +1,5 @@
 #models/response_models.py
 
-# models/response_models.py
 
 from datetime import datetime
 from typing import Optional

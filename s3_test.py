@@ -17,14 +17,14 @@ s3_client = boto3.client(
 )
 
 # Test image data (replace with a real image file)
-image_path = "test_image.jpg"
+image_path = "test_image_new.jpg"
 if not os.path.exists(image_path):
     with open(image_path, "wb") as f:
         f.write(b"\xFF\xD8\xFF")  # Creates a small JPEG file
 
 try:
     # Upload image to S3
-    s3_client.upload_file(image_path, S3_BUCKET_NAME, "test_upload.jpg")
+    s3_client.upload_file(image_path, S3_BUCKET_NAME, "test_image_new.jpg")
     print(f"✅ Successfully uploaded '{image_path}' to AWS S3!")
 
     # Verify uploaded files

@@ -68,3 +68,7 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
             "created_at": None,
         }
     }
+
+
+
+

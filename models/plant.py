@@ -1,5 +1,3 @@
-### models/plant.py
-
 # models/plant.py
 
 from datetime import datetime

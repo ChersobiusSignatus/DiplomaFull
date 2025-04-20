@@ -1,5 +1,6 @@
 # services/gemini.py
 
+from datetime import datetime
 import os
 import json
 import requests
@@ -40,27 +41,58 @@ def parse_gemini_json_response(response: str) -> dict:
         }
 
 
-def get_photo_prompt(plant_name: str, previous_interval: Optional[int] = None) -> str:
-    memory = f"The last recommended watering interval was {previous_interval} days.\n" if previous_interval else ""
+def get_photo_prompt(
+    plant_name: str,
+    previous_interval: Optional[int] = None,
+    last_watered: Optional[datetime] = None
+) -> str:
+    memory_parts = []
+
+    if previous_interval:
+        memory_parts.append(f"The previous recommended watering interval was {previous_interval} days.")
+    if last_watered:
+        memory_parts.append(f"The plant was last watered on {last_watered.strftime('%Y-%m-%d')}.")
+
+    memory = "\n".join(memory_parts)
 
     return f"""
-You are a plant health expert. Analyze the photo of a {plant_name}. Look for signs of disease, dehydration, or stress.
+You are a plant care specialist. Analyze the image of a {plant_name} to determine its health status. 
+
+Look for signs of:
+- stress (such as too much sunlight),
+- dehydration,
+- leaf discoloration,
+- disease or fungus.
 
 {memory}
 
-Return a JSON object with:
-- "recommendation": your care advice
-- "next_watering_in_days": integer
+Then, based on visual analysis, return a JSON object with:
+- "recommendation": care instructions (watering, repositioning, etc.)
+- "next_watering_date": exact next watering date in format YYYY-MM-DD
 
 Example:
 {{
-  "recommendation": "The plant looks healthy. Water it again in 4 days.",
-  "next_watering_in_days": 4
+  "recommendation": "The plant looks slightly dehydrated. Move it away from direct sunlight and water again in 4 days.",
+  "next_watering_date": "2025-04-21"
 }}
 """
 
-def get_combined_prompt(plant_name: str, sensors, weather: dict = None, previous_interval: Optional[int] = None) -> str:
-    memory = f"The last recommended watering interval was {previous_interval} days.\n" if previous_interval else ""
+
+
+def get_combined_prompt(
+    plant_name: str,
+    sensors,
+    weather: dict = None,
+    previous_interval: Optional[int] = None,
+    last_watered: Optional[datetime] = None
+) -> str:
+    memory_parts = []
+    if previous_interval:
+        memory_parts.append(f"The last watering interval was {previous_interval} days.")
+    if last_watered:
+        memory_parts.append(f"The plant was last watered on {last_watered.strftime('%Y-%m-%d')}.")
+
+    memory = "\n".join(memory_parts)
 
     weather_part = ""
     if weather:
@@ -74,9 +106,7 @@ Weather Data:
 """
 
     return f"""
-You are a plant care specialist. Based on this information, recommend the ideal care routine for the {plant_name}.
-
-{memory}
+You are a plant care expert. Based on the sensor data and weather information, analyze the condition of a {plant_name} and provide a care recommendation.
 
 Sensor Data:
 - Temperature: {sensors.temperature}°C
@@ -84,15 +114,17 @@ Sensor Data:
 - Soil Moisture: {sensors.soil_moisture}
 - Light: {sensors.light} lux
 - Gas Quality: {sensors.gas_quality}
+
 {weather_part}
+{memory}
 
 Return a JSON object with:
-- "recommendation": care advice
-- "next_watering_in_days": integer
+- "recommendation": specific care instructions
+- "next_watering_date": exact date in format YYYY-MM-DD
 
 Example:
 {{
-  "recommendation": "Moisture is low. Water now and again in 3 days.",
-  "next_watering_in_days": 3
+  "recommendation": "Soil moisture is sufficient, but the UV index is high. Water again on 2025-04-22.",
+  "next_watering_date": "2025-04-22"
 }}
 """

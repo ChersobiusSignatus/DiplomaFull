@@ -124,7 +124,9 @@ def diagnose_combined(
     db.refresh(recommendation)
     return recommendation
 
-@router.get("/recommendations/{plant_id}", response_model=List[RecommendationOut])
+@router.get("/diagnose/recommendations/{plant_id}", response_model=List[RecommendationOut])
 def get_recommendations(plant_id: UUID, db: Session = Depends(get_db)):
     plant = get_plant_or_404(plant_id, db)
-    return db.query(Recommendation).filter(Recommendation.plant_id == plant_id).order_by(Recommendation.created_at.desc()).all()
+    return db.query(Recommendation).filter(
+        Recommendation.plant_id == plant_id
+    ).order_by(Recommendation.created_at.desc()).all()

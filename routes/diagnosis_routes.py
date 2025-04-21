@@ -1,8 +1,8 @@
-#routes/diagnosis_routes.py
+# routes/diagnosis_routes.py
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, date
+from datetime import datetime
 from uuid import UUID
 from typing import List, Optional
 
@@ -37,8 +37,8 @@ def diagnose_by_photo(
     db: Session = Depends(get_db),
 ):
     plant = get_plant_or_404(plant_id, db)
-
     photo = db.query(Photo).filter(Photo.plant_id == plant_id, Photo.is_current == True).first()
+
     if not photo:
         raise HTTPException(status_code=404, detail="No current photo found for diagnosis")
 
@@ -53,18 +53,12 @@ def diagnose_by_photo(
 
     prompt = get_photo_prompt(
         plant_name=plant.name,
+        plant_type=plant.type,
         previous_interval=previous_interval,
         last_watered=plant.last_watered
     )
-
     raw_response = call_gemini_api(prompt)
     parsed = parse_gemini_json_response(raw_response)
-
-    next_watering_date = None
-    try:
-        next_watering_date = datetime.strptime(parsed["next_watering_date"], "%Y-%m-%d")
-    except Exception:
-        pass
 
     recommendation = Recommendation(
         plant_id=plant_id,
@@ -72,19 +66,14 @@ def diagnose_by_photo(
         type="photo",
         content=parsed["recommendation"],
         last_watered=plant.last_watered,
-        next_watering=next_watering_date,
+        next_watering=parsed.get("next_watering_date"),
         created_at=datetime.utcnow()
     )
-
-    # Обновим next_watering у растения
-    plant.next_watering = next_watering_date
 
     db.add(recommendation)
     db.commit()
     db.refresh(recommendation)
-
     return recommendation
-
 
 @router.post("/combined/{plant_id}", response_model=RecommendationOut)
 def diagnose_combined(
@@ -93,9 +82,9 @@ def diagnose_combined(
     db: Session = Depends(get_db),
 ):
     plant = get_plant_or_404(plant_id, db)
-
     photo = db.query(Photo).filter(Photo.plant_id == plant_id, Photo.is_current == True).first()
     sensor = db.query(SensorData).filter(SensorData.plant_id == plant_id).order_by(SensorData.created_at.desc()).first()
+
     if not photo or not sensor:
         raise HTTPException(status_code=404, detail="Photo or sensor data is missing")
 
@@ -111,21 +100,13 @@ def diagnose_combined(
         previous_interval = max(delta, 1)
 
     prompt = get_combined_prompt(
-        plant_name=plant.name,
-        sensors=sensor,
+        plant.name,
+        sensor,
         weather=weather,
-        previous_interval=previous_interval,
-        last_watered=plant.last_watered
+        previous_interval=previous_interval
     )
-
     raw_response = call_gemini_api(prompt)
     parsed = parse_gemini_json_response(raw_response)
-
-    next_watering_date = None
-    try:
-        next_watering_date = datetime.strptime(parsed["next_watering_date"], "%Y-%m-%d")
-    except Exception:
-        pass
 
     recommendation = Recommendation(
         plant_id=plant_id,
@@ -134,20 +115,14 @@ def diagnose_combined(
         type="combined",
         content=parsed["recommendation"],
         last_watered=plant.last_watered,
-        next_watering=next_watering_date,
+        next_watering=parsed.get("next_watering_date"),
         created_at=datetime.utcnow()
     )
-
-    # Обновим next_watering у растения
-    plant.next_watering = next_watering_date
 
     db.add(recommendation)
     db.commit()
     db.refresh(recommendation)
-
     return recommendation
-
-
 
 @router.get("/recommendations/{plant_id}", response_model=List[RecommendationOut])
 def get_recommendations(plant_id: UUID, db: Session = Depends(get_db)):

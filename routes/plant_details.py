@@ -61,7 +61,7 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
             "created_at": None,
         },
         "last_gemini_recommendation": {
-            "text": recommendation.text,
+            "text": recommendation.content,
             "created_at": recommendation.created_at,
         } if recommendation else {
             "text": None,

@@ -20,7 +20,7 @@ headers = {
 
 def call_gemini_api(prompt: str) -> str:
     body = {
-        "contents": [{"parts": [{"text": prompt}]}]
+        "contents": [{"parts": [{"text": prompt + "\nОтветь на русском языке."}]}]
     }
     response = requests.post(
         f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",

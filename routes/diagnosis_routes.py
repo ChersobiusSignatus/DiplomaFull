@@ -18,6 +18,7 @@ from services.gemini import (
     get_photo_prompt,
     get_combined_prompt,
     call_gemini_api,
+    call_gemini_api_with_image,
     parse_gemini_json_response
 )
 from services.weather import get_weather_data
@@ -56,8 +57,9 @@ def diagnose_by_photo(
         plant_type=plant.type,
         previous_interval=previous_interval,
         last_watered=plant.last_watered
-    )
-    raw_response = call_gemini_api(prompt)
+    ) + "\nПожалуйста, верни ответ на русском языке."
+
+    raw_response = call_gemini_api_with_image(photo.s3_url, prompt)
     parsed = parse_gemini_json_response(raw_response)
 
     recommendation = Recommendation(
@@ -104,8 +106,9 @@ def diagnose_combined(
         sensor,
         weather=weather,
         previous_interval=previous_interval
-    )
-    raw_response = call_gemini_api(prompt)
+    ) + "\nПожалуйста, верни ответ на русском языке."
+
+    raw_response = call_gemini_api_with_image(photo.s3_url, prompt)
     parsed = parse_gemini_json_response(raw_response)
 
     recommendation = Recommendation(
@@ -124,9 +127,7 @@ def diagnose_combined(
     db.refresh(recommendation)
     return recommendation
 
-@router.get("/diagnose/recommendations/{plant_id}", response_model=List[RecommendationOut])
+@router.get("/recommendations/{plant_id}", response_model=List[RecommendationOut])
 def get_recommendations(plant_id: UUID, db: Session = Depends(get_db)):
     plant = get_plant_or_404(plant_id, db)
-    return db.query(Recommendation).filter(
-        Recommendation.plant_id == plant_id
-    ).order_by(Recommendation.created_at.desc()).all()
+    return db.query(Recommendation).filter(Recommendation.plant_id == plant_id).order_by(Recommendation.created_at.desc()).all()

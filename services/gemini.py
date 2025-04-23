@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from typing import Optional
 import base64
 
+
 load_dotenv()
 
 # 🔐 API config
@@ -21,7 +22,7 @@ headers = {
 
 def call_gemini_api(prompt: str) -> str:
     body = {
-        "contents": [{"parts": [{"text": f"{prompt}\n\nПожалуйста, ответь на русском языке."}]}]
+        "contents": [{"parts": [{"text": prompt}]}]
     }
     response = requests.post(
         f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
@@ -32,27 +33,25 @@ def call_gemini_api(prompt: str) -> str:
     result = response.json()
     return result['candidates'][0]['content']['parts'][0]['text']
 
-def call_gemini_api_with_image(image_bytes: bytes, prompt: str) -> str:
+def call_gemini_api_with_image(image_url: str, prompt: str) -> str:
+    image_bytes = requests.get(image_url).content
     image_base64 = base64.b64encode(image_bytes).decode("utf-8")
 
     body = {
         "contents": [
             {
                 "parts": [
+                    {"text": prompt},
                     {
                         "inline_data": {
                             "mime_type": "image/jpeg",
                             "data": image_base64
                         }
-                    },
-                    {
-                        "text": f"{prompt}\n\nПожалуйста, ответь на русском языке."
                     }
                 ]
             }
         ]
     }
-
     response = requests.post(
         f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
         headers=headers,
@@ -68,7 +67,7 @@ def parse_gemini_json_response(response: str) -> dict:
     except json.JSONDecodeError:
         return {
             "recommendation": response,
-            "next_watering_in_days": 3,
+            "next_watering_in_days": 3,  # fallback значение
             "next_watering_date": None
         }
 
@@ -81,33 +80,47 @@ def get_photo_prompt(
     memory_parts = []
 
     if previous_interval:
-        memory_parts.append(f"Последний рекомендованный интервал полива был {previous_interval} дней.")
+        memory_parts.append(f"Ранее рекомендованный интервал полива: {previous_interval} дней.")
     if last_watered:
-        memory_parts.append(f"Последний полив был {last_watered.strftime('%Y-%m-%d')}.")
+        memory_parts.append(f"Последний полив был: {last_watered.strftime('%Y-%m-%d')}.")
 
     memory = "\n".join(memory_parts)
 
     return f"""
-Ты — эксперт по уходу за растениями. Проанализируй изображение растения по имени "{plant_name}" (тип: {plant_type}).
-Ищи признаки болезни, обезвоживания или стресса.
+Ты — специалист по здоровью растений. Проанализируй фотографию растения по имени \"{plant_name}\" (тип: {plant_type}).
+
+Обрати внимание на признаки заболеваний, обезвоживания или стресса.
 
 {memory}
 
-Верни JSON-объект:
-- "recommendation": твоя рекомендация по уходу
-- "next_watering_in_days": через сколько дней поливать
-- "next_watering_date": точная дата в формате YYYY-MM-DD
+Верни JSON объект со следующими полями:
+- \"recommendation\": советы по уходу
+- \"next_watering_in_days\": через сколько дней полить
+- \"next_watering_date\": следующая дата полива в формате YYYY-MM-DD
 
 Пример:
 {{
-  "recommendation": "Растение выглядит здоровым. Следующий полив через 4 дня.",
+  "recommendation": "Растение показывает признаки стресса от солнца. Уберите его в тень. Следующий полив через 4 дня.",
   "next_watering_in_days": 4,
   "next_watering_date": "2025-04-25"
 }}
 """
 
-def get_combined_prompt(plant_name: str, sensors, weather: dict = None, previous_interval: Optional[int] = None) -> str:
-    memory = f"Последний рекомендованный интервал полива был {previous_interval} дней.\n" if previous_interval else ""
+def get_combined_prompt(
+    plant_name: str,
+    plant_type: str,
+    sensors,
+    weather: dict = None,
+    previous_interval: Optional[int] = None,
+    last_watered: Optional[datetime] = None
+) -> str:
+    memory = []
+    if previous_interval:
+        memory.append(f"Ранее рекомендованный интервал полива: {previous_interval} дней.")
+    if last_watered:
+        memory.append(f"Последний полив был: {last_watered.strftime('%Y-%m-%d')}.")
+
+    memory_block = "\n".join(memory)
 
     weather_part = ""
     if weather:
@@ -121,26 +134,26 @@ def get_combined_prompt(plant_name: str, sensors, weather: dict = None, previous
 """
 
     return f"""
-Ты — специалист по уходу за растениями. На основе этих данных дай рекомендации по уходу за растением "{plant_name}".
+Ты — специалист по уходу за растениями. Проанализируй данные сенсоров и предложи рекомендации по уходу за растением {plant_name}, тип: {plant_type}.
 
-{memory}
+{memory_block}
 
-Показания сенсоров:
+Данные с сенсоров:
 - Температура: {sensors.temperature}°C
 - Влажность воздуха: {sensors.humidity}%
 - Влажность почвы: {sensors.soil_moisture}
-- Освещенность: {sensors.light} lux
-- Качество воздуха: {sensors.gas_quality}
+- Освещённость: {sensors.light} люкс
+- Качество воздуха (газа): {sensors.gas_quality}
 {weather_part}
 
-Верни JSON-объект:
-- "recommendation": твоя рекомендация
-- "next_watering_in_days": через сколько дней поливать
-- "next_watering_date": точная дата в формате YYYY-MM-DD
+Верни JSON объект со следующими полями:
+- \"recommendation\": рекомендации по уходу
+- \"next_watering_in_days\": через сколько дней полить
+- \"next_watering_date\": следующая дата полива в формате YYYY-MM-DD
 
 Пример:
 {{
-  "recommendation": "Почва сухая, рекомендуется полив сегодня и повторный через 3 дня.",
+  "recommendation": "Исходя из всех данных: Влажность почвы низкая, слишком много света. Полейте сегодня и снова через 3 дня. Уберите растение в тень",
   "next_watering_in_days": 3,
   "next_watering_date": "2025-04-25"
 }}

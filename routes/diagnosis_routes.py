@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from uuid import UUID
 from typing import List, Optional
-
+import requests 
 from models.database import SessionLocal
 from models.plant import Plant
 from models.photo import Photo
@@ -17,7 +17,6 @@ from utils.validators import get_plant_or_404
 from services.gemini import (
     get_photo_prompt,
     get_combined_prompt,
-    call_gemini_api,
     call_gemini_api_with_image,
     parse_gemini_json_response
 )
@@ -57,9 +56,16 @@ def diagnose_by_photo(
         plant_type=plant.type,
         previous_interval=previous_interval,
         last_watered=plant.last_watered
-    ) + "\nПожалуйста, верни ответ на русском языке."
+    )
 
-    raw_response = call_gemini_api_with_image(photo.s3_url, prompt)
+    try:
+        image_response = requests.get(photo.s3_url)
+        image_response.raise_for_status()
+        image_bytes = image_response.content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download photo from S3: {e}")
+
+    raw_response = call_gemini_api_with_image(image_bytes, prompt)
     parsed = parse_gemini_json_response(raw_response)
 
     recommendation = Recommendation(
@@ -84,8 +90,15 @@ def diagnose_combined(
     db: Session = Depends(get_db),
 ):
     plant = get_plant_or_404(plant_id, db)
-    photo = db.query(Photo).filter(Photo.plant_id == plant_id, Photo.is_current == True).first()
-    sensor = db.query(SensorData).filter(SensorData.plant_id == plant_id).order_by(SensorData.created_at.desc()).first()
+
+    photo = db.query(Photo).filter(
+        Photo.plant_id == plant_id,
+        Photo.is_current == True
+    ).first()
+
+    sensor = db.query(SensorData).filter(
+        SensorData.plant_id == plant_id
+    ).order_by(SensorData.created_at.desc()).first()
 
     if not photo or not sensor:
         raise HTTPException(status_code=404, detail="Photo or sensor data is missing")
@@ -102,13 +115,22 @@ def diagnose_combined(
         previous_interval = max(delta, 1)
 
     prompt = get_combined_prompt(
-        plant.name,
-        sensor,
+        plant_name=plant.name,
+        plant_type=plant.type,
+        sensors=sensor,
         weather=weather,
-        previous_interval=previous_interval
-    ) + "\nПожалуйста, верни ответ на русском языке."
+        previous_interval=previous_interval,
+        last_watered=plant.last_watered
+    )
 
-    raw_response = call_gemini_api_with_image(photo.s3_url, prompt)
+    try:
+        image_response = requests.get(photo.s3_url)
+        image_response.raise_for_status()
+        image_bytes = image_response.content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download photo from S3: {e}")
+
+    raw_response = call_gemini_api_with_image(image_bytes, prompt)
     parsed = parse_gemini_json_response(raw_response)
 
     recommendation = Recommendation(

@@ -1,5 +1,4 @@
 # routes/diagnosis_routes.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -26,7 +25,6 @@ from services.weather import get_weather_data
 router = APIRouter()
 
 # ✅ Получение сессии БД через Depends
-
 def get_db():
     db = SessionLocal()
     try:
@@ -108,7 +106,10 @@ def diagnose_combined(
     if not photo or not sensor:
         raise HTTPException(status_code=404, detail="Photo or sensor data is missing")
 
-    weather = get_weather_data(location.lat, location.lon) if location else None
+    if location:
+        weather = get_weather_data(location.latitude, location.longitude)
+    else:
+        weather = None
 
     last_recommendation = db.query(Recommendation).filter(
         Recommendation.plant_id == plant_id

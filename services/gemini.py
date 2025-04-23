@@ -1,13 +1,11 @@
 # services/gemini.py
-
 from datetime import datetime
 import os
 import json
 import requests
+import base64
 from dotenv import load_dotenv
 from typing import Optional
-import base64
-
 
 load_dotenv()
 
@@ -20,6 +18,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
+# 📤 Gemini API call without image (for text-only prompts)
 def call_gemini_api(prompt: str) -> str:
     body = {
         "contents": [{"parts": [{"text": prompt}]}]
@@ -33,8 +32,8 @@ def call_gemini_api(prompt: str) -> str:
     result = response.json()
     return result['candidates'][0]['content']['parts'][0]['text']
 
-def call_gemini_api_with_image(image_url: str, prompt: str) -> str:
-    image_bytes = requests.get(image_url).content
+# 📤 Gemini API call with image data (image must be in bytes)
+def call_gemini_api_with_image(image_bytes: bytes, prompt: str) -> str:
     image_base64 = base64.b64encode(image_bytes).decode("utf-8")
 
     body = {
@@ -61,6 +60,7 @@ def call_gemini_api_with_image(image_url: str, prompt: str) -> str:
     result = response.json()
     return result['candidates'][0]['content']['parts'][0]['text']
 
+# 📥 Parse Gemini response (fallback if JSON fails)
 def parse_gemini_json_response(response: str) -> dict:
     try:
         return json.loads(response)
@@ -71,6 +71,7 @@ def parse_gemini_json_response(response: str) -> dict:
             "next_watering_date": None
         }
 
+# 🧠 Prompt for image-based analysis
 def get_photo_prompt(
     plant_name: str,
     plant_type: str,
@@ -78,7 +79,6 @@ def get_photo_prompt(
     last_watered: Optional[datetime] = None
 ) -> str:
     memory_parts = []
-
     if previous_interval:
         memory_parts.append(f"Ранее рекомендованный интервал полива: {previous_interval} дней.")
     if last_watered:
@@ -106,6 +106,7 @@ def get_photo_prompt(
 }}
 """
 
+# 🧠 Prompt for combined sensor + image + weather analysis
 def get_combined_prompt(
     plant_name: str,
     plant_type: str,

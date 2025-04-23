@@ -1,11 +1,12 @@
 # routes/diagnosis_routes.py
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 from uuid import UUID
 from typing import List, Optional
-import requests 
+import requests
+
 from models.database import SessionLocal
 from models.plant import Plant
 from models.photo import Photo
@@ -24,6 +25,8 @@ from services.weather import get_weather_data
 
 router = APIRouter()
 
+# ✅ Получение сессии БД через Depends
+
 def get_db():
     db = SessionLocal()
     try:
@@ -31,6 +34,7 @@ def get_db():
     finally:
         db.close()
 
+# 📸 Диагностика по фотографии
 @router.post("/photo/{plant_id}", response_model=RecommendationOut)
 def diagnose_by_photo(
     plant_id: UUID,
@@ -83,6 +87,7 @@ def diagnose_by_photo(
     db.refresh(recommendation)
     return recommendation
 
+# 🔄 Комбинированная диагностика: фото + сенсоры + (опц.) погода
 @router.post("/combined/{plant_id}", response_model=RecommendationOut)
 def diagnose_combined(
     plant_id: UUID,
@@ -149,7 +154,10 @@ def diagnose_combined(
     db.refresh(recommendation)
     return recommendation
 
+# 📜 Получить историю рекомендаций
 @router.get("/recommendations/{plant_id}", response_model=List[RecommendationOut])
 def get_recommendations(plant_id: UUID, db: Session = Depends(get_db)):
     plant = get_plant_or_404(plant_id, db)
-    return db.query(Recommendation).filter(Recommendation.plant_id == plant_id).order_by(Recommendation.created_at.desc()).all()
+    return db.query(Recommendation).filter(
+        Recommendation.plant_id == plant_id
+    ).order_by(Recommendation.created_at.desc()).all()

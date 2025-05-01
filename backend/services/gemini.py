@@ -63,12 +63,18 @@ def call_gemini_api_with_image(image_bytes: bytes, prompt: str) -> str:
 # 📥 Parse Gemini response (fallback if JSON fails)
 def parse_gemini_json_response(response: str) -> dict:
     try:
-        return json.loads(response)
+        data = json.loads(response)
+        return {
+            "recommendation": data.get("recommendation", response),
+            "next_watering_in_days": data.get("next_watering_in_days", 3),
+            "next_watering_date": data.get("next_watering_date")
+        }
     except json.JSONDecodeError:
+        match = re.search(r"(\d{4}-\d{2}-\d{2})", response)
         return {
             "recommendation": response,
-            "next_watering_in_days": 3,  # fallback значение
-            "next_watering_date": None
+            "next_watering_in_days": 3,
+            "next_watering_date": match.group(1) if match else None
         }
 
 # 🧠 Prompt for image-based analysis

@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment variables (store API keys securely)
+.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Google Cloud credentials
+gcloud_key.json

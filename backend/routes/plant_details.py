@@ -39,35 +39,38 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
     )
 
     return {
-        "plant_id": str(plant.id),
-        "name": plant.name,
-        "type": plant.type,
-        "last_watered": plant.last_watered,
-        "next_watering": recommendation.next_watering,  
-        "last_photo": photo.s3_url if photo else None,
-        "last_sensor_data": {
-            "temperature": sensor.temperature,
-            "humidity": sensor.humidity,
-            "soil_moisture": sensor.soil_moisture,
-            "light": sensor.light,
-            "gas_quality": sensor.gas_quality,
-            "created_at": sensor.created_at,
-        } if sensor else {
-            "temperature": None,
-            "humidity": None,
-            "soil_moisture": None,
-            "light": None,
-            "gas_quality": None,
-            "created_at": None,
-        },
-        "last_gemini_recommendation": {
-            "text": recommendation.content,
-            "created_at": recommendation.created_at,
-        } if recommendation else {
-            "text": None,
-            "created_at": None,
-        }
+    "plant_id": str(plant.id),
+    "name": plant.name,
+    "type": plant.type,
+    "last_watered": plant.last_watered,
+    "next_watering": recommendation.next_watering,  
+    "last_photo": photo.s3_url if photo else None,
+    "last_sensor_data": {
+        "temperature": sensor.temperature,
+        "humidity": sensor.humidity,
+        "soil_moisture": sensor.soil_moisture,
+        "light": sensor.light,
+        "gas_quality": sensor.gas_quality,
+        "created_at": sensor.created_at,
+    } if sensor else {
+        "temperature": None,
+        "humidity": None,
+        "soil_moisture": None,
+        "light": None,
+        "gas_quality": None,
+        "created_at": None,
+    },
+    "last_gemini_recommendation": {
+        "recommendation": recommendation.content,
+        "created_at": recommendation.created_at,
+        "next_watering_date": recommendation.next_watering
+    } if recommendation else {
+        "recommendation": None,
+        "created_at": None,
+        "next_watering_date": None
     }
+}
+
 
 
 

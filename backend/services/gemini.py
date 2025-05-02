@@ -66,10 +66,11 @@ def parse_gemini_json_response(response: str) -> dict:
     try:
         data = json.loads(response)
         return {
-            "recommendation": data.get("recommendation", response),
-            "next_watering_in_days": data.get("next_watering_in_days", 3),
-            "next_watering_date": data.get("next_watering_date")
+            "recommendation": data.get("content", response),
+            "next_watering_in_days": None,
+            "next_watering_date": data.get("next_watering")
         }
+
     except json.JSONDecodeError:
         match = re.search(r"(\d{4}-\d{2}-\d{2})", response)
         return {

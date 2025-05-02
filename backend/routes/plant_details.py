@@ -65,9 +65,9 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
         "next_watering_date": recommendation.next_watering,
         "created_at": recommendation.created_at,
     } if recommendation else {
-    "recommendation": None,
-    "next_watering_date": None,
-    "created_at": None,
+        "recommendation": None,
+        "next_watering_date": None,
+        "created_at": None,
     }
 }
 

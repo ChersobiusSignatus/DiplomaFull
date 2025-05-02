@@ -43,7 +43,7 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
     "name": plant.name,
     "type": plant.type,
     "last_watered": plant.last_watered,
-    "next_watering": recommendation.next_watering,  
+    "next_watering": recommendation.next_watering if recommendation else None,
     "last_photo": photo.s3_url if photo else None,
     "last_sensor_data": {
         "temperature": sensor.temperature,

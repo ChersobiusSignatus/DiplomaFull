@@ -4,6 +4,7 @@ import os
 import json
 import requests
 import base64
+import re
 from dotenv import load_dotenv
 from typing import Optional
 

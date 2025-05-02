@@ -64,18 +64,20 @@ def call_gemini_api_with_image(image_bytes: bytes, prompt: str) -> str:
 # 📥 Parse Gemini response (fallback if JSON fails)
 def parse_gemini_json_response(response: str) -> dict:
     try:
+        # пробуем распарсить строку как JSON
         data = json.loads(response)
         return {
             "recommendation": data.get("recommendation", response),
             "next_watering_in_days": data.get("next_watering_in_days", 3),
-            "next_watering_date": data.get("next_watering_date")
+            "next_watering": data.get("next_watering") or data.get("next_watering_date")
         }
     except json.JSONDecodeError:
+        # Fallback — если response просто текст
         match = re.search(r"(\d{4}-\d{2}-\d{2})", response)
         return {
             "recommendation": response,
             "next_watering_in_days": 3,
-            "next_watering_date": match.group(1) if match else None
+            "next_watering": match.group(1) if match else None
         }
 
 
@@ -158,12 +160,12 @@ def get_combined_prompt(
 Верни JSON объект со следующими полями:
 - \"recommendation\": рекомендации по уходу
 - \"next_watering_in_days\": через сколько дней полить
-- \"next_watering_date\": следующая дата полива в формате YYYY-MM-DD
+- \"next_watering\": следующая дата полива в формате YYYY-MM-DD
 
 Пример:
 {{
   "recommendation": "Исходя из всех данных: Влажность почвы низкая, слишком много света. Полейте сегодня и снова через 3 дня. Уберите растение в тень",
   "next_watering_in_days": 3,
-  "next_watering_date": "2025-04-25"
+  "next_watering": "2025-04-25"
 }}
 """

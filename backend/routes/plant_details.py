@@ -62,11 +62,11 @@ def get_plant_details(plant_id: UUID, db: Session = Depends(get_db)):
     },
     "last_gemini_recommendation": {
         "recommendation": recommendation.content,
-        "next_watering_date": recommendation.next_watering,
+        "next_watering": recommendation.next_watering,
         "created_at": recommendation.created_at,
     } if recommendation else {
         "recommendation": None,
-        "next_watering_date": None,
+        "next_watering": None,
         "created_at": None,
     }
 }

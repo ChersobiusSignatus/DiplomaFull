@@ -49,7 +49,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session =
         content=image_bytes or b"No image available",
         media_type="image/jpeg" if image_bytes else "text/plain",
         headers={
-            "X-Recommendation": recommendation.recommendation if recommendation else "",
+            "X-Recommendation": recommendation.content if recommendation else "",
             "X-Next-Watering": str(recommendation.next_watering) if recommendation else "",
             "X-Sensor-Temperature": str(sensor.temperature) if sensor else "",
             "X-Sensor-Humidity": str(sensor.humidity) if sensor else "",

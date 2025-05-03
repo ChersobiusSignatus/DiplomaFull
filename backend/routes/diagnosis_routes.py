@@ -142,9 +142,8 @@ def diagnose_combined(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to download photo from S3: {e}")
 
-        raw_response = call_gemini_api_with_image(image_bytes, prompt)
+    raw_response = call_gemini_api_with_image(image_bytes, prompt)
     parsed = parse_gemini_json_response(raw_response)
-
     next_watering_str = parsed.get("next_watering")
     next_watering_date = (
         datetime.strptime(next_watering_str, "%Y-%m-%d")

@@ -69,7 +69,7 @@ def parse_gemini_json_response(response: str) -> dict:
         return {
             "recommendation": data.get("recommendation", response),
             "next_watering_in_days": data.get("next_watering_in_days", 3),
-            "next_watering": data.get("next_watering") or data.get("next_watering_date")
+            "next_watering": data.get("next_watering") or data.get("next_watering")
         }
     except json.JSONDecodeError:
         # Fallback — если response просто текст
@@ -106,13 +106,13 @@ def get_photo_prompt(
 Верни JSON объект со следующими полями:
 - \"recommendation\": советы по уходу
 - \"next_watering_in_days\": через сколько дней полить
-- \"next_watering_date\": следующая дата полива в формате YYYY-MM-DD
+- \"next_watering\": следующая дата полива в формате YYYY-MM-DD
 
 Пример:
 {{
   "recommendation": "Растение показывает признаки стресса от солнца. Уберите его в тень. Следующий полив через 4 дня.",
   "next_watering_in_days": 4,
-  "next_watering_date": "2025-04-25"
+  "next_watering": "2025-04-25"
 }}
 """
 

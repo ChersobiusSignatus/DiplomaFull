@@ -12,12 +12,12 @@ def insert_fake_sensor_data():
     entry = SensorData(
         id=uuid.uuid4(),
         plant_id=plant_id,
-        temperature=27.2,
-        humidity=32.0,
-        soil_moisture=17.4,
-        light=9500.0,
-        gas_quality=0.69,
-        created_at=datetime(2025, 5, 2, 12, 0)
+        temperature=18.4,       # прохладно
+        humidity=89.0,          # высокая влажность воздуха
+        soil_moisture=42.3,     # влажная почва после дождя
+        light=1800.0,           # слабое освещение из-за облачности
+        gas_quality=0.73,       # немного хуже, из-за сырости
+        created_at=datetime(2025, 5, 3, 12, 0)  # 3 мая в полдень
     )
 
     with Session(engine) as session:

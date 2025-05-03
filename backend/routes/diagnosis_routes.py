@@ -70,13 +70,19 @@ def diagnose_by_photo(
     raw_response = call_gemini_api_with_image(image_bytes, prompt)
     parsed = parse_gemini_json_response(raw_response)
 
+    next_watering_str = parsed.get("next_watering")
+    next_watering_date = (
+        datetime.strptime(next_watering_str, "%Y-%m-%d")
+        if next_watering_str else None
+    )
+
     recommendation = Recommendation(
         plant_id=plant_id,
         photo_id=photo.id,
         type="photo",
         content=parsed["recommendation"],
         last_watered=plant.last_watered,
-        next_watering=parsed.get("next_watering_date"),
+        next_watering=next_watering_date,
         created_at=datetime.utcnow()
     )
 
@@ -136,8 +142,14 @@ def diagnose_combined(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to download photo from S3: {e}")
 
-    raw_response = call_gemini_api_with_image(image_bytes, prompt)
+        raw_response = call_gemini_api_with_image(image_bytes, prompt)
     parsed = parse_gemini_json_response(raw_response)
+
+    next_watering_str = parsed.get("next_watering")
+    next_watering_date = (
+        datetime.strptime(next_watering_str, "%Y-%m-%d")
+        if next_watering_str else None
+    )
 
     recommendation = Recommendation(
         plant_id=plant_id,
@@ -146,7 +158,7 @@ def diagnose_combined(
         type="combined",
         content=parsed["recommendation"],
         last_watered=plant.last_watered,
-        next_watering=parsed.get("next_watering_date"),
+        next_watering=next_watering_date,
         created_at=datetime.utcnow()
     )
 

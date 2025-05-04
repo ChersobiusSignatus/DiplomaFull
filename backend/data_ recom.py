@@ -13,6 +13,7 @@ import psycopg2
 from datetime import date
 
 # 🔧 Укажи свои данные подключения
+DATABASE_URL = ""
 
 plant_id = "7c721d41-ad67-46b3-a998-bfad5abe63e8"
 selected_date = date(2025, 4, 25)

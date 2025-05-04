@@ -24,13 +24,13 @@ app = FastAPI(
     }
 )
 
-# ✅ Include all routers
+# ✅ Include all routers with prefixes
 app.include_router(plant_routes.router, prefix="/plants", tags=["Plants"])
 app.include_router(photo_routes.router, prefix="/plants", tags=["Photos"])
 app.include_router(sensor_routes.router, prefix="/plants", tags=["Sensors"])
 app.include_router(diagnosis_routes.router, prefix="/diagnose", tags=["Diagnosis"])
 app.include_router(details_router, prefix="/plants", tags=["Plant Details"])
-app.include_router(history_router, tags=["History"])
+app.include_router(history_router, prefix="/plants", tags=["History"])  # 👈 обязательно!
 
 @app.get("/", tags=["System"])
 def home():

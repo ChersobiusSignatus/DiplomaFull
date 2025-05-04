@@ -21,7 +21,9 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
-    # Ищем по дате без учёта времени
+    # Логируем для отладки
+    print("✅ Parsed date:", parsed_date)
+
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
@@ -39,8 +41,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
             Photo.plant_id == plant_id,
             func.date(Photo.created_at) <= parsed_date
         ).order_by(Photo.created_at.desc()).first()
-    
-    print("✅ Parsed date:", parsed_date)
+
     print("🧠 Recommendation match:", recommendation)
     print("📡 Sensor match:", sensor)
 
@@ -63,8 +64,8 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
             image_response = requests.get(photo.s3_url)
             image_response.raise_for_status()
             image_bytes = image_response.content
-        except:
-            pass
+        except Exception as e:
+            print(f"⚠️ Ошибка при загрузке фото с S3: {e}")
 
     return Response(
         content=image_bytes or b"No image available",

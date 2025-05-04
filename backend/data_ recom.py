@@ -8,33 +8,47 @@ from uuid import UUID
 from datetime import datetime, time
 
 
-plant_id = UUID("7c721d41-ad67-46b3-a998-bfad5abe63e8")
-target_date = datetime.strptime("2025-04-25", "%Y-%m-%d").date()
+import os
+import psycopg2
+from datetime import date
 
-start_dt = datetime.combine(target_date, time.min)
-end_dt = datetime.combine(target_date, time.max)
+# 🔧 Укажи свои данные подключения
 
-engine = create_engine(DATABASE_URL)
+plant_id = "7c721d41-ad67-46b3-a998-bfad5abe63e8"
+selected_date = date(2025, 4, 25)
 
-with Session(engine) as session:
-    print("\n📌 Проверяем Recommendation:")
-    rec = session.query(Recommendation).filter(
-        and_(
-            Recommendation.plant_id == plant_id,
-            Recommendation.created_at >= start_dt,
-            Recommendation.created_at <= end_dt
-        )
-    ).all()
-    for r in rec:
-        print(f"- {r.created_at} | {r.content}")
+tables = {
+    "recommendations": "created_at",
+    "sensor_data": "created_at",
+    "photos": "created_at"
+}
 
-    print("\n📌 Проверяем SensorData:")
-    sensors = session.query(SensorData).filter(
-        and_(
-            SensorData.plant_id == plant_id,
-            SensorData.created_at >= start_dt,
-            SensorData.created_at <= end_dt
-        )
-    ).all()
-    for s in sensors:
-        print(f"- {s.created_at} | Temp: {s.temperature} | Soil: {s.soil_moisture}")
+try:
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    for table, time_column in tables.items():
+        print(f"\n🔍 {table.upper()}:")
+
+        cursor.execute(f"""
+            SELECT id, {time_column}
+            FROM {table}
+            WHERE plant_id = %s AND DATE({time_column}) = %s
+            ORDER BY {time_column} ASC
+        """, (plant_id, selected_date))
+
+        rows = cursor.fetchall()
+        if not rows:
+            print("  ⛔ Нет данных.")
+        else:
+            for row in rows:
+                print(f"  ✅ ID: {row[0]}, created_at: {row[1].isoformat()}")
+
+except Exception as e:
+    print(f"❌ Ошибка: {e}")
+
+finally:
+    if 'cursor' in locals():
+        cursor.close()
+    if 'conn' in locals():
+        conn.close()

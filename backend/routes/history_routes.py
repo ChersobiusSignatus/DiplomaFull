@@ -16,6 +16,14 @@ router = APIRouter()
 
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
+    try:
+        parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    start_dt = datetime.combine(parsed_date, datetime.min.time())
+    end_dt = datetime.combine(parsed_date, datetime.max.time())
+
     print("LOOKING FOR:", plant_id, start_dt, end_dt)
 
     photos = db.query(Photo).filter(Photo.plant_id == plant_id).all()
@@ -27,13 +35,6 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
     sensors = db.query(SensorData).filter(SensorData.plant_id == plant_id).all()
     print("SENSORS:", [(s.temperature, s.created_at) for s in sensors])
 
-    try:
-        parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
-
-    start_dt = datetime.combine(parsed_date, datetime.min.time())
-    end_dt = datetime.combine(parsed_date, datetime.max.time())
 
     recommendation = db.query(Recommendation)\
         .filter(

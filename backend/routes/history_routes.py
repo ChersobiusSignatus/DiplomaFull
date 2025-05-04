@@ -39,6 +39,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session =
     image_bytes = None
     if photo and photo.s3_url:
         try:
+            print("S3 URL:", photo.s3_url)
             image_response = requests.get(photo.s3_url)
             image_response.raise_for_status()
             image_bytes = image_response.content
@@ -58,3 +59,6 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session =
             "X-Sensor-Gas": str(sensor.gas_quality) if sensor else ""
         }
     )
+
+           
+

@@ -14,7 +14,7 @@ from models.recommendation import Recommendation
 
 router = APIRouter()
 
-@router.get("/plants/{plant_id}/history/{selected_date}")
+@router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
     try:
         parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
@@ -67,7 +67,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
         media_type="image/jpeg" if image_bytes else "text/plain",
         headers={
             "X-Recommendation": recommendation.content if recommendation else alt_message,
-            "X-Next-Watering": str(recommendation.next_watering) if recommendation else "",
+            "X-Next-Watering": str(recommendation.next_watering) if recommendation and recommendation.next_watering else "",
             "X-Sensor-Temperature": str(sensor.temperature) if sensor else "",
             "X-Sensor-Humidity": str(sensor.humidity) if sensor else "",
             "X-Sensor-Light": str(sensor.light) if sensor else "",

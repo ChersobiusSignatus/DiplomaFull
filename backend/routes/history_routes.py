@@ -37,13 +37,15 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
         ).order_by(SensorData.created_at.desc()).first()
 
     photo = db.query(Photo)\
-        .filter(
-            Photo.plant_id == plant_id,
-            Photo.created_at <= end_dt
-        ).order_by(Photo.created_at.desc()).first()
+    .filter(
+        Photo.plant_id == plant_id,
+        Photo.created_at.between(start_dt, end_dt)
+    ).order_by(Photo.created_at.desc()).first()
 
-    if not recommendation and not sensor:
+
+    if not recommendation and not sensor and not photo:
         raise HTTPException(status_code=404, detail="No data found for this date")
+
 
     alt_message = ""
     if not recommendation:

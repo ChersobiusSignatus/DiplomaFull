@@ -6,13 +6,14 @@ from sqlalchemy import func
 from uuid import UUID
 from datetime import datetime
 import requests
-
+from datetime import datetime, timedelta
 from models.database import get_db
 from models.photo import Photo
 from models.sensor_data import SensorData
 from models.recommendation import Recommendation
 
 router = APIRouter()
+
 
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
@@ -21,29 +22,26 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
-    # Логируем для отладки
-    print("✅ Parsed date:", parsed_date)
+    start_dt = datetime.combine(parsed_date, datetime.min.time())
+    end_dt = datetime.combine(parsed_date, datetime.max.time())
 
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
-            func.date(Recommendation.created_at) == parsed_date
+            Recommendation.created_at.between(start_dt, end_dt)
         ).order_by(Recommendation.created_at.desc()).first()
 
     sensor = db.query(SensorData)\
         .filter(
             SensorData.plant_id == plant_id,
-            func.date(SensorData.created_at) == parsed_date
+            SensorData.created_at.between(start_dt, end_dt)
         ).order_by(SensorData.created_at.desc()).first()
 
     photo = db.query(Photo)\
         .filter(
             Photo.plant_id == plant_id,
-            func.date(Photo.created_at) <= parsed_date
+            Photo.created_at <= end_dt
         ).order_by(Photo.created_at.desc()).first()
-
-    print("🧠 Recommendation match:", recommendation)
-    print("📡 Sensor match:", sensor)
 
     if not recommendation and not sensor:
         raise HTTPException(status_code=404, detail="No data found for this date")
@@ -51,10 +49,10 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
     alt_message = ""
     if not recommendation:
         prev = db.query(func.date(Recommendation.created_at))\
-            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at < parsed_date)\
+            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at < start_dt)\
             .order_by(Recommendation.created_at.desc()).first()
         next = db.query(func.date(Recommendation.created_at))\
-            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at > parsed_date)\
+            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at > end_dt)\
             .order_by(Recommendation.created_at.asc()).first()
         alt_message = f"Нет рекомендации. Попробуйте {prev[0]} или {next[0]}" if prev or next else "Нет рекомендации на эту дату"
 
@@ -64,8 +62,8 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
             image_response = requests.get(photo.s3_url)
             image_response.raise_for_status()
             image_bytes = image_response.content
-        except Exception as e:
-            print(f"⚠️ Ошибка при загрузке фото с S3: {e}")
+        except:
+            pass
 
     return Response(
         content=image_bytes or b"No image available",

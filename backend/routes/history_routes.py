@@ -16,6 +16,7 @@ router = APIRouter()
 
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
+    print("✅ History route loaded")
     try:
         parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
     except ValueError:

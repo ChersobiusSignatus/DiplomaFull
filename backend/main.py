@@ -5,9 +5,20 @@ from fastapi import FastAPI
 from routes import plant_routes, photo_routes, sensor_routes, diagnosis_routes
 from routes.plant_details import router as details_router
 from routes.history_routes import router as history_router
+from contextlib import asynccontextmanager
+from fastapi.routing import APIRoute
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("📋 Registered routes:")
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            print(f"✅ {route.path} → {route.name}")
+    yield
+
 
 app = FastAPI(
-    title="🌿 SunGreen API",
+     title="🌿 SunGreen API",
     description=(
         "AI-powered plant care assistant that helps you track plant health using:\n"
         "- Photos (analyzed by Gemini AI)\n"
@@ -22,8 +33,10 @@ app = FastAPI(
     contact={
         "name": "SunGreen",
         "email": "@gmail.com"
-    }
+    },
+    lifespan=lifespan
 )
+
 
 # ✅ Register all routers with the right prefixes
 app.include_router(plant_routes.router, prefix="/plants", tags=["Plants"])
@@ -36,3 +49,5 @@ app.include_router(history_router, prefix="/plants", tags=["History"])  # 💡 T
 @app.get("/", tags=["System"])
 def home():
     return {"message": "🌿 SunGreen API is up and running!"}
+
+

@@ -39,6 +39,10 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
             Photo.plant_id == plant_id,
             func.date(Photo.created_at) <= parsed_date
         ).order_by(Photo.created_at.desc()).first()
+    
+    print("✅ Parsed date:", parsed_date)
+    print("🧠 Recommendation match:", recommendation)
+    print("📡 Sensor match:", sensor)
 
     if not recommendation and not sensor:
         raise HTTPException(status_code=404, detail="No data found for this date")

@@ -16,6 +16,17 @@ router = APIRouter()
 
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
+    print("LOOKING FOR:", plant_id, start_dt, end_dt)
+
+    photos = db.query(Photo).filter(Photo.plant_id == plant_id).all()
+    print("PHOTOS:", [(p.s3_url, p.created_at) for p in photos])
+
+    recs = db.query(Recommendation).filter(Recommendation.plant_id == plant_id).all()
+    print("RECS:", [(r.content, r.created_at) for r in recs])
+
+    sensors = db.query(SensorData).filter(SensorData.plant_id == plant_id).all()
+    print("SENSORS:", [(s.temperature, s.created_at) for s in sensors])
+
     try:
         parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
     except ValueError:

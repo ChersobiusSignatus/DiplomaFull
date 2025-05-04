@@ -1,12 +1,9 @@
-
-
 # routes/history_routes.py
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func, Date
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime, time
 import requests
 
 from models.database import get_db
@@ -18,25 +15,28 @@ router = APIRouter()
 
 @router.get("/plants/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session = Depends(get_db)):
+    start_dt = datetime.combine(selected_date, time.min)
+    end_dt = datetime.combine(selected_date, time.max)
+
     # Рекомендация за этот день
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
-            func.date(Recommendation.created_at) == selected_date
+            Recommendation.created_at.between(start_dt, end_dt)
         ).order_by(Recommendation.created_at.desc()).first()
 
     # Сенсорные данные за этот день
     sensor = db.query(SensorData)\
         .filter(
             SensorData.plant_id == plant_id,
-            func.date(SensorData.created_at) == selected_date
+            SensorData.created_at.between(start_dt, end_dt)
         ).order_by(SensorData.created_at.desc()).first()
 
     # Фото — последнее до или в этот день (не обязательно)
     photo = db.query(Photo)\
         .filter(
             Photo.plant_id == plant_id,
-            func.date(Photo.created_at) <= selected_date
+            Photo.created_at <= end_dt
         ).order_by(Photo.created_at.desc()).first()
 
     if not recommendation and not sensor:
@@ -44,18 +44,18 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session =
 
     alt_message = ""
     if not recommendation:
-        prev_rec = db.query(func.max(func.date(Recommendation.created_at)))\
+        prev_rec = db.query(Recommendation.created_at)\
             .filter(
                 Recommendation.plant_id == plant_id,
-                func.date(Recommendation.created_at) < selected_date
-            ).scalar()
-        next_rec = db.query(func.min(func.date(Recommendation.created_at)))\
+                Recommendation.created_at < start_dt
+            ).order_by(Recommendation.created_at.desc()).first()
+        next_rec = db.query(Recommendation.created_at)\
             .filter(
                 Recommendation.plant_id == plant_id,
-                func.date(Recommendation.created_at) > selected_date
-            ).scalar()
-        prev_str = prev_rec.isoformat() if prev_rec else "—"
-        next_str = next_rec.isoformat() if next_rec else "—"
+                Recommendation.created_at > end_dt
+            ).order_by(Recommendation.created_at.asc()).first()
+        prev_str = prev_rec[0].date().isoformat() if prev_rec else "—"
+        next_str = next_rec[0].date().isoformat() if next_rec else "—"
         alt_message = f"В этот день рекомендации не было. Попробуйте {prev_str} или {next_str}"
 
     image_bytes = None

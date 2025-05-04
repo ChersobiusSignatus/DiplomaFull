@@ -6,14 +6,13 @@ from sqlalchemy import func
 from uuid import UUID
 from datetime import datetime
 import requests
-from datetime import datetime, timedelta
+
 from models.database import get_db
 from models.photo import Photo
 from models.sensor_data import SensorData
 from models.recommendation import Recommendation
 
 router = APIRouter()
-
 
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):

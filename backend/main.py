@@ -1,3 +1,4 @@
+
 # main.py
 
 from fastapi import FastAPI
@@ -24,13 +25,13 @@ app = FastAPI(
     }
 )
 
-# ✅ Include all routers with prefixes
+# ✅ Register all routers with the right prefixes
 app.include_router(plant_routes.router, prefix="/plants", tags=["Plants"])
 app.include_router(photo_routes.router, prefix="/plants", tags=["Photos"])
 app.include_router(sensor_routes.router, prefix="/plants", tags=["Sensors"])
 app.include_router(diagnosis_routes.router, prefix="/diagnose", tags=["Diagnosis"])
 app.include_router(details_router, prefix="/plants", tags=["Plant Details"])
-app.include_router(history_router, prefix="/plants", tags=["History"])
+app.include_router(history_router, prefix="/plants", tags=["History"])  # 💡 This matches with @router.get("/{plant_id}/history/...")
 
 @app.get("/", tags=["System"])
 def home():

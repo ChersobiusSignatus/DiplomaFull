@@ -3,9 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime, time
 import requests
-from sqlalchemy import func
 
 from models.database import get_db
 from models.photo import Photo
@@ -16,49 +15,52 @@ router = APIRouter()
 
 @router.get("/plants/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session = Depends(get_db)):
-    # Рекомендация за этот день (по дате без времени)
+    start_dt = datetime.combine(selected_date, time.min)
+    end_dt = datetime.combine(selected_date, time.max)
+
+    # Рекомендация за этот день
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
-            func.date(Recommendation.created_at) == selected_date
+            Recommendation.created_at.between(start_dt, end_dt)
         ).order_by(Recommendation.created_at.desc()).first()
 
     # Сенсорные данные за этот день
     sensor = db.query(SensorData)\
         .filter(
             SensorData.plant_id == plant_id,
-            func.date(SensorData.created_at) == selected_date
+            SensorData.created_at.between(start_dt, end_dt)
         ).order_by(SensorData.created_at.desc()).first()
 
-    # Фото — последнее до или в этот день (может быть с любого времени)
+    # Фото — последнее до или в этот день
     photo = db.query(Photo)\
         .filter(
             Photo.plant_id == plant_id,
-            Photo.created_at <= selected_date
+            Photo.created_at <= end_dt
         ).order_by(Photo.created_at.desc()).first()
 
-    # Если нет ни рекомендаций, ни сенсоров — возвращаем 404
-    if not recommendation and not sensor:
+    # Если нет и рекомендации, и сенсоров — 404
+    if recommendation is None and sensor is None:
         raise HTTPException(status_code=404, detail="No data found for this date")
 
-    # Альтернативное сообщение, если нет рекомендаций
+    # Если нет рекомендации — найди ближайшие даты для альтернативного сообщения
     alt_message = ""
-    if not recommendation:
+    if recommendation is None:
         prev_rec = db.query(Recommendation.created_at)\
             .filter(
                 Recommendation.plant_id == plant_id,
-                Recommendation.created_at < selected_date
+                Recommendation.created_at < start_dt
             ).order_by(Recommendation.created_at.desc()).first()
         next_rec = db.query(Recommendation.created_at)\
             .filter(
                 Recommendation.plant_id == plant_id,
-                Recommendation.created_at > selected_date
+                Recommendation.created_at > end_dt
             ).order_by(Recommendation.created_at.asc()).first()
         prev_str = prev_rec[0].date().isoformat() if prev_rec else "—"
         next_str = next_rec[0].date().isoformat() if next_rec else "—"
         alt_message = f"В этот день рекомендации не было. Попробуйте {prev_str} или {next_str}"
 
-    # Загрузка изображения (если есть фото)
+    # Загрузить фото по s3_url
     image_bytes = None
     if photo and photo.s3_url:
         try:

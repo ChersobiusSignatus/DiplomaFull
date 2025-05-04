@@ -1,11 +1,12 @@
 
-#history_routes.py
+
+# routes/history_routes.py
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, Date
 from uuid import UUID
-from datetime import date, datetime, time
+from datetime import date
 import requests
 
 from models.database import get_db
@@ -17,57 +18,49 @@ router = APIRouter()
 
 @router.get("/plants/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session = Depends(get_db)):
-    start_of_day = datetime.combine(selected_date, time.min)
-    end_of_day = datetime.combine(selected_date, time.max)
-
     # Рекомендация за этот день
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
-            Recommendation.created_at >= start_of_day,
-            Recommendation.created_at <= end_of_day
-        )\
-        .order_by(Recommendation.created_at.desc())\
-        .first()
+            func.date(Recommendation.created_at) == selected_date
+        ).order_by(Recommendation.created_at.desc()).first()
 
-    # Сенсоры за этот день
+    # Сенсорные данные за этот день
     sensor = db.query(SensorData)\
         .filter(
             SensorData.plant_id == plant_id,
-            SensorData.created_at >= start_of_day,
-            SensorData.created_at <= end_of_day
-        )\
-        .order_by(SensorData.created_at.desc())\
-        .first()
+            func.date(SensorData.created_at) == selected_date
+        ).order_by(SensorData.created_at.desc()).first()
 
-    # Фото — последнее до или в этот день
+    # Фото — последнее до или в этот день (не обязательно)
     photo = db.query(Photo)\
-        .filter(Photo.plant_id == plant_id, Photo.created_at <= end_of_day)\
-        .order_by(Photo.created_at.desc())\
-        .first()
+        .filter(
+            Photo.plant_id == plant_id,
+            func.date(Photo.created_at) <= selected_date
+        ).order_by(Photo.created_at.desc()).first()
 
-    if not sensor and not recommendation:
+    if not recommendation and not sensor:
         raise HTTPException(status_code=404, detail="No data found for this date")
 
-    # Сообщение, если рекомендации нет
     alt_message = ""
     if not recommendation:
         prev_rec = db.query(func.max(func.date(Recommendation.created_at)))\
-            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at < start_of_day)\
-            .scalar()
+            .filter(
+                Recommendation.plant_id == plant_id,
+                func.date(Recommendation.created_at) < selected_date
+            ).scalar()
         next_rec = db.query(func.min(func.date(Recommendation.created_at)))\
-            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at > end_of_day)\
-            .scalar()
-
+            .filter(
+                Recommendation.plant_id == plant_id,
+                func.date(Recommendation.created_at) > selected_date
+            ).scalar()
         prev_str = prev_rec.isoformat() if prev_rec else "—"
         next_str = next_rec.isoformat() if next_rec else "—"
         alt_message = f"В этот день рекомендации не было. Попробуйте {prev_str} или {next_str}"
 
-    # Картинка (необязательная)
     image_bytes = None
     if photo and photo.s3_url:
         try:
-            print("S3 URL:", photo.s3_url)
             image_response = requests.get(photo.s3_url)
             image_response.raise_for_status()
             image_bytes = image_response.content

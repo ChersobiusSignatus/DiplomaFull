@@ -11,28 +11,25 @@ from models.photo import Photo
 from models.sensor_data import SensorData
 from models.recommendation import Recommendation
 
-router = APIRouter()
+router = APIRouter()  # ❗ Без prefix — он добавляется в main.py
 
-@router.get("/plants/{plant_id}/history/{selected_date}")
+@router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: date, db: Session = Depends(get_db)):
     start_dt = datetime.combine(selected_date, time.min)
     end_dt = datetime.combine(selected_date, time.max)
 
-    # Рекомендация за этот день
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
             Recommendation.created_at.between(start_dt, end_dt)
         ).order_by(Recommendation.created_at.desc()).first()
 
-    # Сенсорные данные за этот день
     sensor = db.query(SensorData)\
         .filter(
             SensorData.plant_id == plant_id,
             SensorData.created_at.between(start_dt, end_dt)
         ).order_by(SensorData.created_at.desc()).first()
 
-    # Фото — последнее до или в этот день (не обязательно)
     photo = db.query(Photo)\
         .filter(
             Photo.plant_id == plant_id,

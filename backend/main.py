@@ -16,6 +16,7 @@ async def lifespan(app: FastAPI):
             print(f"✅ {route.path} → {route.name}")
     yield
 
+print("Запуск main.py")
 
 app = FastAPI(
      title="🌿 SunGreen API",

@@ -1,4 +1,3 @@
-
 # routes/history_routes.py
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -15,21 +14,29 @@ from models.sensor_data import SensorData
 import logging
 import sys
 
+print("Загрузка history_routes.py")
+
 router = APIRouter()
 
-# Настройка логирования
+# Настройка логирования для совместимости с uvicorn
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[logging.StreamHandler(sys.stdout)],  # Убедимся, что логи выводятся в stdout
+    handlers=[logging.StreamHandler(sys.stdout)],
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
+# Убедимся, что logger совместим с uvicorn
+logger = logging.getLogger("uvicorn")
+logger.setLevel(logging.INFO)
+
+# Отладочный лог для проверки, что модуль загружен
+logger.info("Загружен модуль history_routes.py")
 
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
+    logger.info(f"Начало обработки запроса для plant_id={plant_id}, selected_date={selected_date}")
     try:
         parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-        logger.info(f"Запрос для plant_id={plant_id}, selected_date={selected_date}, parsed_date={parsed_date}")
+        logger.info(f"Успешно распарсена дата: parsed_date={parsed_date}")
     except ValueError as e:
         logger.error(f"Ошибка парсинга даты: {e}, входная строка: {selected_date}")
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
@@ -44,6 +51,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
         logger.info(f"Recommendation найдено: {recommendation is not None}, created_at: {recommendation.created_at if recommendation else 'None'}")
     except Exception as e:
         logger.error(f"Ошибка при поиске recommendation: {e}")
+        raise HTTPException(status_code=500, detail="Database error while fetching recommendation")
 
     try:
         sensor = db.query(SensorData)\
@@ -54,6 +62,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
         logger.info(f"Sensor найдено: {sensor is not None}, created_at: {sensor.created_at if sensor else 'None'}")
     except Exception as e:
         logger.error(f"Ошибка при поиске sensor: {e}")
+        raise HTTPException(status_code=500, detail="Database error while fetching sensor")
 
     try:
         photo = db.query(Photo)\
@@ -64,6 +73,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
         logger.info(f"Photo найдено: {photo is not None}, created_at: {photo.created_at if photo else 'None'}")
     except Exception as e:
         logger.error(f"Ошибка при поиске photo: {e}")
+        raise HTTPException(status_code=500, detail="Database error while fetching photo")
 
     # Проверка на наличие данных
     if not recommendation and not sensor:

@@ -1,54 +1,64 @@
-from sqlalchemy import create_engine, inspect, text
-import os
-from tabulate import tabulate
-from datetime import datetime
-import pandas as pd
 
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from uuid import UUID
 
-# ✅ Указываем или загружаем строку подключения
+# Настройки подключения к базе данных
+# Замените параметры на свои: имя пользователя, пароль, хост, порт и имя базы данных
 DATABASE_URL = "postgresql://postgres:Kogp9He!gds@database-1.ctm2g2is8193.eu-central-1.rds.amazonaws.com:5432/helth_db"
 
-# 📂 Пути для сохранения файлов
-text_output = "db_snapshot.txt"
-csv_output_dir = "db_exports"
 
-# 📁 Создаём папку для .csv, если не существует
-os.makedirs(csv_output_dir, exist_ok=True)
-
-# 🔌 Подключение к базе
+# Создаём подключение к базе данных
 engine = create_engine(DATABASE_URL)
-inspector = inspect(engine)
+Session = sessionmaker(bind=engine)
+db = Session()
 
-with engine.connect() as connection, open(text_output, "w", encoding="utf-8") as f:
-    f.write(f"📅 Snapshot from: {datetime.utcnow()} UTC\n")
-    f.write("✅ Подключено к базе данных\n\n")
+# ID растения
+plant_id = "7c721d41-ad67-46b3-a998-bfad5abe63e8"
 
-    tables = inspector.get_table_names()
-    f.write(f"📋 Таблицы в БД ({len(tables)}): {tables}\n\n")
+try:
+    # 1. Проверка таблицы recommendations
+    print("Проверка таблицы recommendations:")
+    result = db.execute(
+        text("SELECT created_at FROM recommendations WHERE plant_id = :plant_id"),
+        {"plant_id": plant_id}
+    )
+    recommendations = result.fetchall()
+    if recommendations:
+        for row in recommendations:
+            print(f"recommendations.created_at: {row[0]}")
+    else:
+        print("Записей в recommendations не найдено.")
 
-    for table_name in tables:
-        f.write(f"🔎 Таблица: {table_name}\n")
-        columns = inspector.get_columns(table_name)
-        col_info = [(col["name"], str(col["type"]), col["nullable"]) for col in columns]
-        f.write("📦 Колонки:\n")
-        f.write(tabulate(col_info, headers=["Имя", "Тип", "Nullable"], tablefmt="grid"))
-        f.write("\n")
+    # 2. Проверка таблицы sensor_data
+    print("\nПроверка таблицы sensor_data:")
+    result = db.execute(
+        text("SELECT created_at FROM sensor_data WHERE plant_id = :plant_id"),
+        {"plant_id": plant_id}
+    )
+    sensor_data = result.fetchall()
+    if sensor_data:
+        for row in sensor_data:
+            print(f"sensor_data.created_at: {row[0]}")
+    else:
+        print("Записей в sensor_data не найдено.")
 
-        f.write("🧾 Первые 10 строк данных:\n")
-        try:
-            result = connection.execute(text(f'SELECT * FROM "{table_name}" LIMIT 10'))
-            rows = result.fetchall()
-            f.write(tabulate(rows, headers=result.keys(), tablefmt="grid"))
-            f.write("\n")
+    # 3. Проверка таблицы photos
+    print("\nПроверка таблицы photos:")
+    result = db.execute(
+        text("SELECT * FROM photos WHERE plant_id = :plant_id"),
+        {"plant_id": plant_id}
+    )
+    photos = result.fetchall()
+    if photos:
+        for row in photos:
+            print(f"photos: {row}")
+    else:
+        print("Записей в photos не найдено.")
 
-            # 📥 Экспорт в CSV всей таблицы
-            full_df = pd.read_sql(text(f'SELECT * FROM "{table_name}"'), connection)
-            csv_path = os.path.join(csv_output_dir, f"{table_name}.csv")
-            full_df.to_csv(csv_path, index=False)
-        except Exception as e:
-            f.write(f"⚠️ Ошибка при извлечении данных или экспорте CSV: {e}\n")
-        
-        f.write("\n" + "-"*80 + "\n\n")
+except Exception as e:
+    print(f"Произошла ошибка при выполнении запросов: {e}")
 
-print(f"✅ Снимок базы сохранён в {text_output}")
-print(f"✅ CSV-файлы сохранены в папке: {csv_output_dir}")
+finally:
+    # Закрываем сессию
+    db.close()

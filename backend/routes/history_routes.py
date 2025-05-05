@@ -24,11 +24,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-# Убедимся, что logger совместим с uvicorn
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
-# Отладочный лог для проверки, что модуль загружен
 logger.info("Загружен модуль history_routes.py")
 
 @router.get("/{plant_id}/history/{selected_date}")
@@ -94,22 +92,22 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
             previous_date = previous_recommendation.created_at.date().strftime("%Y-%m-%d") if previous_recommendation else None
             next_date = next_recommendation.created_at.date().strftime("%Y-%m-%d") if next_recommendation else None
 
-            detail = f"данных на {parsed_date} нет."
+            detail = f"No data for {parsed_date}."  # Используем ASCII-совместимую строку
             if previous_date or next_date:
-                detail += " Попробуйте"
+                detail += " Try"
                 if previous_date:
                     detail += f" {previous_date}"
                 if previous_date and next_date:
-                    detail += " или"
+                    detail += " or"
                 if next_date:
                     detail += f" {next_date}"
-            logger.info(f"Возвращаем 404 с сообщением: {detail}")
+            logger.info(f"Returning 404 with message: {detail}")
             raise HTTPException(status_code=404, detail=detail)
         except Exception as e:
-            logger.error(f"Ошибка при поиске ближайших дат: {e}")
+            logger.error(f"Error while searching for nearest dates: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
-    logger.info("Данные найдены, формируем ответ")
+    logger.info("Data found, forming response")
     # Формирование ответа
     image_bytes = None
     if photo and photo.s3_url:
@@ -118,18 +116,21 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
             image_response.raise_for_status()
             image_bytes = image_response.content
         except Exception as e:
-            logger.error(f"Ошибка загрузки фото: {e}")
+            logger.error(f"Error downloading photo: {e}")
+
+    # Убедимся, что все значения заголовков — ASCII-совместимые строки
+    headers = {
+        "X-Recommendation": str(recommendation.content) if recommendation else "No recommendation",
+        "X-Next-Watering": str(recommendation.next_watering) if recommendation and recommendation.next_watering else "",
+        "X-Sensor-Temperature": str(sensor.temperature) if sensor else "",
+        "X-Sensor-Humidity": str(sensor.humidity) if sensor else "",
+        "X-Sensor-Light": str(sensor.light) if sensor else "",
+        "X-Sensor-Soil": str(sensor.soil_moisture) if sensor else "",
+        "X-Sensor-Gas": str(sensor.gas_quality) if sensor else ""
+    }
 
     return Response(
         content=image_bytes or b"No image available",
         media_type="image/jpeg" if image_bytes else "text/plain",
-        headers={
-            "X-Recommendation": recommendation.content if recommendation else "Нет рекомендации",
-            "X-Next-Watering": str(recommendation.next_watering) if recommendation and recommendation.next_watering else "",
-            "X-Sensor-Temperature": str(sensor.temperature) if sensor else "",
-            "X-Sensor-Humidity": str(sensor.humidity) if sensor else "",
-            "X-Sensor-Light": str(sensor.light) if sensor else "",
-            "X-Sensor-Soil": str(sensor.soil_moisture) if sensor else "",
-            "X-Sensor-Gas": str(sensor.gas_quality) if sensor else ""
-        }
+        headers=headers
     )

@@ -5,7 +5,6 @@ from uuid import UUID
 
 # Настройки подключения к базе данных
 # Замените параметры на свои: имя пользователя, пароль, хост, порт и имя базы данных
-DATABASE_URL = "postgresql://postgres:Kogp9He!gds@database-1.ctm2g2is8193.eu-central-1.rds.amazonaws.com:5432/helth_db"
 
 
 # Создаём подключение к базе данных

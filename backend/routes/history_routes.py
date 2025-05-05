@@ -14,9 +14,9 @@ from models.recommendation import Recommendation
 
 router = APIRouter()
 
+
 @router.get("/{plant_id}/history/{selected_date}")
 def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = Depends(get_db)):
-    print("✅ History route loaded")
     try:
         parsed_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
     except ValueError:
@@ -25,51 +25,30 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
     start_dt = datetime.combine(parsed_date, datetime.min.time())
     end_dt = datetime.combine(parsed_date, datetime.max.time())
 
-    print("LOOKING FOR:", plant_id, start_dt, end_dt)
-
-    photos = db.query(Photo).filter(Photo.plant_id == plant_id).all()
-    print("PHOTOS:", [(p.s3_url, p.created_at) for p in photos])
-
-    recs = db.query(Recommendation).filter(Recommendation.plant_id == plant_id).all()
-    print("RECS:", [(r.content, r.created_at) for r in recs])
-
-    sensors = db.query(SensorData).filter(SensorData.plant_id == plant_id).all()
-    print("SENSORS:", [(s.temperature, s.created_at) for s in sensors])
-
-
+    # Поиск записей за точную дату
     recommendation = db.query(Recommendation)\
         .filter(
             Recommendation.plant_id == plant_id,
-            Recommendation.created_at.between(start_dt, end_dt)
+            func.date(Recommendation.created_at) == parsed_date
         ).order_by(Recommendation.created_at.desc()).first()
 
     sensor = db.query(SensorData)\
         .filter(
             SensorData.plant_id == plant_id,
-            SensorData.created_at.between(start_dt, end_dt)
+            func.date(SensorData.created_at) == parsed_date
         ).order_by(SensorData.created_at.desc()).first()
 
     photo = db.query(Photo)\
-    .filter(
-        Photo.plant_id == plant_id,
-        Photo.created_at.between(start_dt, end_dt)
-    ).order_by(Photo.created_at.desc()).first()
+        .filter(
+            Photo.plant_id == plant_id,
+            func.date(Photo.created_at) == parsed_date
+        ).order_by(Photo.created_at.desc()).first()
 
-
+    # Проверка на наличие данных
     if not recommendation and not sensor and not photo:
         raise HTTPException(status_code=404, detail="No data found for this date")
 
-
-    alt_message = ""
-    if not recommendation:
-        prev = db.query(func.date(Recommendation.created_at))\
-            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at < start_dt)\
-            .order_by(Recommendation.created_at.desc()).first()
-        next = db.query(func.date(Recommendation.created_at))\
-            .filter(Recommendation.plant_id == plant_id, Recommendation.created_at > end_dt)\
-            .order_by(Recommendation.created_at.asc()).first()
-        alt_message = f"Нет рекомендации. Попробуйте {prev[0]} или {next[0]}" if prev or next else "Нет рекомендации на эту дату"
-
+    # Формирование ответа
     image_bytes = None
     if photo and photo.s3_url:
         try:
@@ -83,7 +62,7 @@ def get_plant_history_by_date(plant_id: UUID, selected_date: str, db: Session = 
         content=image_bytes or b"No image available",
         media_type="image/jpeg" if image_bytes else "text/plain",
         headers={
-            "X-Recommendation": recommendation.content if recommendation else alt_message,
+            "X-Recommendation": recommendation.content if recommendation else "Нет рекомендации",
             "X-Next-Watering": str(recommendation.next_watering) if recommendation and recommendation.next_watering else "",
             "X-Sensor-Temperature": str(sensor.temperature) if sensor else "",
             "X-Sensor-Humidity": str(sensor.humidity) if sensor else "",

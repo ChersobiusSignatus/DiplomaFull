@@ -1,55 +1,54 @@
-
+from sqlalchemy import create_engine, inspect, text
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
+from tabulate import tabulate
+from datetime import datetime
+import pandas as pd
 
-load_dotenv()
 
-if not DATABASE_URL:
-    raise RuntimeError("❌ DATABASE_URL is not set!")
+# ✅ Указываем или загружаем строку подключения
+DATABASE_URL = "postgresql://postgres:Kogp9He!gds@database-1.ctm2g2is8193.eu-central-1.rds.amazonaws.com:5432/helth_db"
 
-plant_id = "7c721d41-ad67-46b3-a998-bfad5abe63e8"
-selected_date = "2025-04-25"
+# 📂 Пути для сохранения файлов
+text_output = "db_snapshot.txt"
+csv_output_dir = "db_exports"
 
-print(f"\n🔎 Проверка данных на дату {selected_date} для plant_id = {plant_id}\n")
+# 📁 Создаём папку для .csv, если не существует
+os.makedirs(csv_output_dir, exist_ok=True)
 
-try:
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
+# 🔌 Подключение к базе
+engine = create_engine(DATABASE_URL)
+inspector = inspect(engine)
 
-    # Проверка рекомендаций
-    print("📘 Рекомендации:")
-    cursor.execute("""
-        SELECT id, type, content, created_at 
-        FROM recommendations 
-        WHERE plant_id = %s AND DATE(created_at) = %s
-    """, (plant_id, selected_date))
-    recommendations = cursor.fetchall()
-    if recommendations:
-        for row in recommendations:
-            print(dict(row))
-    else:
-        print("Нет рекомендаций на эту дату.")
+with engine.connect() as connection, open(text_output, "w", encoding="utf-8") as f:
+    f.write(f"📅 Snapshot from: {datetime.utcnow()} UTC\n")
+    f.write("✅ Подключено к базе данных\n\n")
 
-    # Проверка сенсоров
-    print("\n🌡️ Сенсорные данные:")
-    cursor.execute("""
-        SELECT id, temperature, humidity, light, soil_moisture, gas_quality, created_at 
-        FROM sensor_data 
-        WHERE plant_id = %s AND DATE(created_at) = %s
-    """, (plant_id, selected_date))
-    sensors = cursor.fetchall()
-    if sensors:
-        for row in sensors:
-            print(dict(row))
-    else:
-        print("Нет сенсорных данных на эту дату.")
+    tables = inspector.get_table_names()
+    f.write(f"📋 Таблицы в БД ({len(tables)}): {tables}\n\n")
 
-except Exception as e:
-    print(f"🚨 Ошибка: {e}")
-finally:
-    if 'cursor' in locals():
-        cursor.close()
-    if 'conn' in locals():
-        conn.close()
+    for table_name in tables:
+        f.write(f"🔎 Таблица: {table_name}\n")
+        columns = inspector.get_columns(table_name)
+        col_info = [(col["name"], str(col["type"]), col["nullable"]) for col in columns]
+        f.write("📦 Колонки:\n")
+        f.write(tabulate(col_info, headers=["Имя", "Тип", "Nullable"], tablefmt="grid"))
+        f.write("\n")
+
+        f.write("🧾 Первые 10 строк данных:\n")
+        try:
+            result = connection.execute(text(f'SELECT * FROM "{table_name}" LIMIT 10'))
+            rows = result.fetchall()
+            f.write(tabulate(rows, headers=result.keys(), tablefmt="grid"))
+            f.write("\n")
+
+            # 📥 Экспорт в CSV всей таблицы
+            full_df = pd.read_sql(text(f'SELECT * FROM "{table_name}"'), connection)
+            csv_path = os.path.join(csv_output_dir, f"{table_name}.csv")
+            full_df.to_csv(csv_path, index=False)
+        except Exception as e:
+            f.write(f"⚠️ Ошибка при извлечении данных или экспорте CSV: {e}\n")
+        
+        f.write("\n" + "-"*80 + "\n\n")
+
+print(f"✅ Снимок базы сохранён в {text_output}")
+print(f"✅ CSV-файлы сохранены в папке: {csv_output_dir}")
